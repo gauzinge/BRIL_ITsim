@@ -8,9 +8,9 @@ process = cms.Process("ITclusterAnalyzer")
 # set up the options
 options = VarParsing.VarParsing('analysis')
 #set up the defaults
-# options.inputFiles = 'file:/eos/user/g/gauzinge/PUdata/step3_pixel_PU_1.1.root'
-#options.inputFiles = 'file:/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/BRIL_ITsim/step3_pixel_PU_10.0.root'
-options.inputFiles = 'file:/afs/cern.ch/work/c/cbarrera/private/BRIL/outputDir/step3_pixel_PU_20.0.0.root'
+options.inputFiles = 'file:/eos/user/g/gauzinge/PUdata/step3_pixel_PU_1.1.root'
+# options.inputFiles = 'file:/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/BRIL_ITsim/step3_pixel_PU_10.0.root'
+# options.inputFiles = 'file:/afs/cern.ch/work/c/cbarrera/private/BRIL/outputDir/step3_pixel_PU_20.0.0.root'
 options.outputFile='summary.root'
 options.maxEvents = -1 #all events
 

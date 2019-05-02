@@ -78,7 +78,7 @@ then
    return
 fi
 
-if test -z "$STAGED"
+if test -z "$STAGED" 
 then
    echo "Running unstaged"
    STAGEDVAL=0
@@ -149,7 +149,7 @@ echo "[$(date '+%F %T')] wrapper ready"
 ##RUN THE ACTUAL SIMULATION
 ################################################################################
 
-if [ "$STAGEDVAL" -eq "0" ]
+if [ "$STAGEDVAL" -eq "0"  ]
 then
     echo "Running the full simulation in one step from directory ${PWD}!"
     command="cmsRun BRIL_ITsimPU_cfg.py print \
