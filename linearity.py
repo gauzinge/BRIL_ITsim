@@ -155,7 +155,7 @@ def extrapolateLinear(graph, basis=1):
     #draw the fit extrapolated to 200
     par0 = pol1.GetParameter(0)
     par1 = pol1.GetParameter(1)
-    extrapolated = root.TF1("extra","[0]*x+[1]",0,50)
+    extrapolated = root.TF1("extra","[0]*x+[1]",0,200)
     extrapolated.SetParameter(0,par0)
     extrapolated.SetParameter(1,par1)
     extrapolated.SetLineColor(6)
@@ -281,7 +281,7 @@ elif observable == "Hits":
             print("Not a root file, skipping")
             continue
 
-    rootfile = root.TFile("Results_Hits.root","RECREATE")
+    rootfile = root.TFile("Results_Hits.root","UPDATE")
     index = 1
     for i in range(disks):
         for j in range(rings):
@@ -331,7 +331,7 @@ else:
             print("Not a root file, skipping")
             continue
 
-    rootfile = root.TFile("Results.root","UPDATE")
+    rootfile = root.TFile("Results_Coincidences.root","UPDATE")
     index = 1
     for i in range(disks):
         for j in range(rings):

@@ -17,6 +17,7 @@ function list_include_item {
 PU=$1
 NEVENTS=$2
 JOBID=$3
+STAGED=$4
 
 ################################################################################
 ##CHANGE ME ACCORDING TO YOUR NEEDS
@@ -26,10 +27,10 @@ NTHREADS=10
 FILE=file:
 PUPATH=/afs/cern.ch/work/g/gauzinge/public/minBiasFiles
 
-#OUTDIR=/eos/user/g/gauzinge/PUdata
+OUTDIR=/eos/user/g/gauzinge/PUdata
 #
 # COB high-pileuo samples
-OUTDIR=/eos/user/c/cbarrera/BRIL_ITsim_PUsamples
+#OUTDIR=/eos/user/c/cbarrera/BRIL_ITsim_PUsamples
 #
 #OUTDIR=/afs/cern.ch/work/c/cbarrera/private/BRIL/outputDir
 #OUTDIR=/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/BRIL_ITsim
@@ -77,6 +78,14 @@ then
    return
 fi
 
+if test -z "$STAGED"
+then
+   echo "Running unstaged"
+   STAGEDVAL=0
+else
+   echo "Running staged"
+   STAGEDVAL=1
+fi
 
 ################################################################################
 #PRINT THE ARGUMENTS SUMMARY
@@ -93,6 +102,7 @@ echo 'maxBunch : ' ${MAXBUNCH}
 echo 'PileupFiles: ' ${PUFILE}
 echo 'OutputDirectory: ' ${OUTDIR}
 echo 'Number of Threads: ' ${NTHREADS}
+echo 'Staged execution: ' ${STAGEDVAL}
 echo '###########################################################################'
 
 ################################################################################
@@ -139,8 +149,10 @@ echo "[$(date '+%F %T')] wrapper ready"
 ##RUN THE ACTUAL SIMULATION
 ################################################################################
 
-echo "Running the full simulation in one step from directory ${PWD}!"
-command="cmsRun BRIL_ITsimPU_cfg.py print \
+if [ "$STAGEDVAL" -eq "0" ]
+then
+    echo "Running the full simulation in one step from directory ${PWD}!"
+    command="cmsRun BRIL_ITsimPU_cfg.py print \
             nEvents=${NEVENTS} \
             pileupFile=${PUFILE} \
             pileupAverage=${PU} \
@@ -151,8 +163,45 @@ command="cmsRun BRIL_ITsimPU_cfg.py print \
             jobId=${JOBID} \
             outputDirectory=file:${OUTDIR}"
 
-echo 'Command: ' ${command}
-${command}
+    echo 'Command: ' ${command}
+    ${command}
+else
+    echo "Running the full simulation in 3 steps from directory ${PWD}!"
+    step1="cmsRun BRIL_step1_cfg.py print \
+            nEvents=${NEVENTS} \
+            nThreads=${NTHREADS}"
+
+    step2="cmsRun BRIL_step2_cfg.py print \
+            nEvents=${NEVENTS} \
+            pileupFile=${PUFILE} \
+            pileupAverage=${PU} \
+            bunchSpace=${BUNCHSPACING} \
+            minBunch=${MINBUNCH} \
+            maxBunch=${MAXBUNCH} \
+            nThreads=${NTHREADS}"
+
+    step3="cmsRun BRIL_step3_cfg.py print \
+            nEvents=${NEVENTS} \
+            pileupFile=${PUFILE} \
+            pileupAverage=${PU} \
+            bunchSpace=${BUNCHSPACING} \
+            minBunch=${MINBUNCH} \
+            maxBunch=${MAXBUNCH} \
+            nThreads=${NTHREADS} \
+            jobId=${JOBID} \
+            outputDirectory=file:${OUTDIR}"
+
+    echo 'Command1: ' ${step1}
+    echo 'Command2: ' ${step2}
+    echo 'Command3: ' ${step3}
+
+    #do it!
+    ${step1}
+    ${step2}
+    rm step1.root
+    ${step3}
+    rm step2.root
+fi
 
 ################################################################################
 ##CLEANING UP BEHIND MYSELF
