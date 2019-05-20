@@ -32,7 +32,7 @@ function runAnalysis() {
     done
     
     echo "Now merging output histograms"
-    command="hadd summary_PU_${PUIN}.root"
+    command="hadd -f summary_PU_${PUIN}.root"
     for rootfile in ${PWD}/temp_?.root; do
         command+=" ${rootfile}"
     done
@@ -51,3 +51,5 @@ else
     runAnalysis ${DATAPATH} ${PUIN}
 fi
 
+echo "Cleaning up..."
+rm temp*.root
