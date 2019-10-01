@@ -7,6 +7,7 @@ from __future__ import print_function
 import ROOT as root
 #get the OS features
 import os, sys, re, math
+import numpy as np
 
 #fit a poisson distribution
 def fitPoisson(hist):
@@ -22,12 +23,18 @@ def fitPoisson(hist):
             # raw_input("Press Enter to Continue...")
     return fit, status
 
-#extract mean and sigma from 1D projections of # of Clusters histograms
+#extract mean/ and sigma from 1D projections of # of Clusters histograms
 def getParams(hist, ring):
     ringhist= hist.ProjectionY("Ring", ring+1, ring+1)
     # (fit,status)=fitPoisson(ringhist)
     # if status != 4000:
+    prob = np.array([0.5])
+    x = 0.0
+    q = np.array([0.])
+    x = ringhist.GetQuantiles(1,q,prob)
+    median = q
     mean = ringhist.GetMean()
+    print("mean ",mean," median ", median)
         # print("Problem with the fit, using simple mean - fit status:",status)
     # else:
         # mean = fit.GetParameter(1)
@@ -40,7 +47,7 @@ def getParams(hist, ring):
     # if mean == 0.5:
         # mean = 0
 
-    print("Ring",ring," wiht mean",mean,"RMS",sigma)
+    print("Ring",ring," wiht m",mean,"RMS",sigma)
     return (mean,sigma)
 
 #get the linearity graph for clusters
@@ -65,8 +72,8 @@ def getLinearityClusters(file, graphs=[]):
 
         #now loop the rings
         for ring in range(5):
-            (mean, sigma) = getParams(histminusz, ring)
-            graphs[disk-1][ring].SetPoint(graphs[disk-1][ring].GetN(),pileup, mean)
+            (m, sigma) = getParams(histminusz, ring)
+            graphs[disk-1][ring].SetPoint(graphs[disk-1][ring].GetN(),pileup, m)
             graphs[disk-1][ring].SetPointError(graphs[disk-1][ring].GetN()-1,0, sigma)
 
     rootfile.Close()
@@ -94,14 +101,14 @@ def getLinearityHits(file, graphs=[]):
 
         #now loop the rings
         for ring in range(5):
-            (mean, sigma) = getParams(histminusz, ring)
-            graphs[disk-1][ring].SetPoint(graphs[disk-1][ring].GetN(),pileup, mean)
+            (m, sigma) = getParams(histminusz, ring)
+            graphs[disk-1][ring].SetPoint(graphs[disk-1][ring].GetN(),pileup, m)
             graphs[disk-1][ring].SetPointError(graphs[disk-1][ring].GetN()-1,0, sigma)
 
     rootfile.Close()
     return
 
-# extract the mean, sigma and pileup from the folder in the rootfile - this is where the magic happens
+# extract the mean/median, sigma and pileup from the folder in the rootfile - this is where the magic happens
 def getLinearityCoincidences(file,nCoincidences, graphssum=[],graphsreal=[]):
 
     pileupstring = re.findall('summary_PU_(.*).root', file)
@@ -134,13 +141,13 @@ def getLinearityCoincidences(file,nCoincidences, graphssum=[],graphsreal=[]):
 
         #now loop the rings
         for ring in range(5):
-            (meansum, sigmasum) = getParams(histminusz, ring)
-            (meanreal, sigmareal) = getParams(realhistminusz, ring)
+            (msum, sigmasum) = getParams(histminusz, ring)
+            (mreal, sigmareal) = getParams(realhistminusz, ring)
 
-            graphssum[disk-1][ring].SetPoint(graphssum[disk-1][ring].GetN(),pileup, meansum)
+            graphssum[disk-1][ring].SetPoint(graphssum[disk-1][ring].GetN(),pileup, msum)
             graphssum[disk-1][ring].SetPointError(graphssum[disk-1][ring].GetN()-1,0, sigmasum)
 
-            graphsreal[disk-1][ring].SetPoint(graphsreal[disk-1][ring].GetN(),pileup, meanreal)
+            graphsreal[disk-1][ring].SetPoint(graphsreal[disk-1][ring].GetN(),pileup, mreal)
             graphsreal[disk-1][ring].SetPointError(graphsreal[disk-1][ring].GetN()-1,0, sigmareal)
 
     rootfile.Close()
@@ -241,7 +248,7 @@ if observable == "Clusters":
         for j in range(rings):
             #Cosmetics
             graphs[i][j].SetLineColor(1)
-            graphs[i][j].SetTitle("Linearity Disk"+str(i+1)+"Ring"+str(j+1)+";Pileup;# of Clusters")
+            graphs[i][j].SetTitle(";Pileup;Mean number of clusters")
             c_canvas.cd(index)
             graphs[i][j].Draw("ap")
 
@@ -257,9 +264,29 @@ if observable == "Clusters":
             #save canvases for the individual disk/ring combos
             savecanvas = root.TCanvas("Clusters Disk"+str(i+1)+"Ring"+str(j+1),"Clusters Disk"+str(i+1)+"Ring"+str(j+1))
             savecanvas.cd()
+            graphs[i][j].GetYaxis().SetTitleOffset(1.2)
+            graphs[i][j].GetXaxis().SetTitleSize(0.04)
+            graphs[i][j].GetXaxis().SetLabelSize(0.04)
+            graphs[i][j].GetYaxis().SetTitleSize(0.04)
+            graphs[i][j].GetYaxis().SetLabelSize(0.04)
             graphs[i][j].Draw("ap")
             errors[i][j].Draw("e3 same")
             extrapolated[i][j].Draw("same")
+            tepx = root.TLatex()
+            tepx.SetTextFont(42)
+            tepx.SetTextSize(0.04)
+            tepx.SetTextAlign(11)
+            tepx.DrawLatex(0.8,945,"#bf{CMS Phase-2} #it{Simulation Preliminary}") # 945 - D1R5; 1940 - D1R1,D4R1
+            energy = root.TLatex()
+            energy.SetTextFont(42)
+            energy.SetTextSize(0.04)
+            energy.SetTextAlign(11)
+            energy.DrawLatex(183,945,"#sqrt{s} = 14 TeV")
+            cmsprel = root.TLatex()
+            cmsprel.SetTextFont(42)
+            cmsprel.SetTextSize(0.035)
+            cmsprel.SetTextAlign(11)
+            cmsprel.DrawLatex(20,820,"#bf{Tracker Endcap Pixel Detector} Disk "+str(i+1)+" Ring "+str(j+1)) # 820 - D1R5; 1700 - D1R1,D4R1
             savecanvas.Write("Clusters Disk"+str(i+1)+"Ring"+str(j+1))
             index = index+1
 
@@ -344,7 +371,7 @@ else:
             graphsreal[i][j].SetMarkerColor(8)
             graphssum[i][j].SetMarkerStyle(8)
             graphsreal[i][j].SetMarkerStyle(8)
-            graphssum[i][j].SetTitle("Linearity Disk"+str(i+1)+"Ring"+str(j+1)+";Pileup;# of "+observable+" Coincidences")
+            graphssum[i][j].SetTitle("Linearity Disk"+str(i+1)+"Ring"+str(j+1)+";<N_{PU}>;<Number of "+observable+" Coincidences")
             c_canvas.cd(index)
             graphssum[i][j].Draw("ap")
             graphsreal[i][j].Draw("p same")
