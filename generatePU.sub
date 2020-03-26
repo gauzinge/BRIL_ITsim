@@ -3,11 +3,11 @@ NEvents             = 1000
 
 executable          = runSim.sh
 #arguments           = $(PU_parameter) $(NEvents) $(ProcId)
-arguments           = $(PU_parameter) $(NEvents) 12 1
+arguments           = $(PU_parameter) $(NEvents) 4
 output              = batchlog/runSim.$(ClusterId).$(ProcId).out
 error               = batchlog/runSim.$(ClusterId).$(ProcId).err
 log                 = batchlog/runSim.$(ClusterId).log
-transfer_input_files    = sandbox.tar.bz2, BRIL_ITsimPU_cfg.py, BRIL_step1_cfg.py, BRIL_step2_cfg.py, BRIL_step3_cfg.py
+transfer_input_files    = sandbox.tar.bz2, BRIL_ITsimPU_cfg.py
 #getenv              = True
 request_cpus        = 10
 requirements = (OpSysAndVer =?= "SLCern6")
