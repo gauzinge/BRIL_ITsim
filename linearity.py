@@ -79,6 +79,48 @@ def getLinearityClusters(file, graphs=[]):
     rootfile.Close()
     return
 
+#get the stat error graph for clusters
+def getStatErrorClusters(file,TEPXgraph, graphs=[]):
+    ln4=16384
+    trgkhz=0.075
+    pileupstring = re.findall('summary_PU_(.*).root', file)
+    pileup = float(pileupstring[0])
+    print("Found a root file for pileup", pileup, "in file", file, "Objects: Clusters")
+
+    rootfile = root.TFile.Open(file)
+    rootfile.cd('BRIL_IT_Analysis/Clusters')
+
+    #build the histogram names
+    histname = "Number of clusters for Disk "
+    nClustersTEPX=0
+
+    #loop the disks
+    for disk in range(1,5):
+        histminusz = root.gDirectory.Get(histname +"-"+str(disk))
+        histplusz = root.gDirectory.Get(histname+str(disk))
+        #add plus and minus Z histograms
+        histminusz.Add(histplusz)
+
+        #now loop the rings
+        for ring in range(5):
+            (mean, sigma) = getParams(histminusz, ring)
+            nClustersTEPX += mean
+            if (pileup==0):
+                value=0
+            else:
+                value=(math.sqrt(mean*ln4)/(mean*ln4))*(math.sqrt(trgkhz/40)/(trgkhz/40))
+            graphs[disk-1][ring].SetPoint(graphs[disk-1][ring].GetN(),pileup, value)
+            # graphs[disk-1][ring].SetMarkerStyle(8)
+            # graphs[disk-1][ring].SetPointError(graphs[disk-1][ring].GetN()-1,0, sigma)
+    
+    if(pileup==0):
+        TEPXvalue=0
+    else:
+        TEPXvalue=(math.sqrt(nClustersTEPX*ln4)/(nClustersTEPX*ln4))*(math.sqrt(trgkhz/40)/(trgkhz/40))
+    TEPXgraph.SetPoint(TEPXgraph.GetN(),pileup,TEPXvalue)
+    rootfile.Close()
+    return
+
 #get the linearity graph for hits
 def getLinearityHits(file, graphs=[]):
 
@@ -232,34 +274,38 @@ if observable == "Clusters":
     graphs = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
     extrapolated = [[root.TF1() for j in range(rings)] for i in range(disks)]
     errors = [[root.TGraphErrors() for j in range(rings)] for i in range(disks)]
+    TEPXgraph=root.TGraph()
+    TEPXgraph.SetMarkerStyle(8)
+    TEPXgraph.SetTitle("Stat. Error TEPX [NB4]")
 
     for file in files:
         if file.find(".root"):
             filename = path+file
             #fill the actual graph for all available PU steps
-            getLinearityClusters(filename,graphs)
+            getStatErrorClusters(filename,TEPXgraph,graphs)
         else:
             print("Not a root file, skipping")
             continue
 
-    rootfile = root.TFile("Results_Clusters.root","RECREATE")
+    rootfile = root.TFile("Results_StatError.root","RECREATE")
     index = 1
     for i in range(disks):
         for j in range(rings):
             #Cosmetics
             graphs[i][j].SetLineColor(1)
-            graphs[i][j].SetTitle(";Pileup;Mean number of clusters")
+            graphs[i][j].SetTitle("Statistical Error [NB4] Disk"+str(i+1)+"Ring"+str(j+1)+";Pileup;Statistical Error [%]")
+            graphs[i][j].SetMarkerStyle(8)
             c_canvas.cd(index)
             graphs[i][j].Draw("ap")
 
             #fit and extrapolate
-            (extrapolated[i][j],errors[i][j]) = extrapolateLinear(graphs[i][j],2)
-            errors[i][j].Draw("e3 same")
-            extrapolated[i][j].Draw("same")
+            # (extrapolated[i][j],errors[i][j]) = extrapolateLinear(graphs[i][j],2)
+            # errors[i][j].Draw("e3 same")
+            # extrapolated[i][j].Draw("same")
 
             #calculate relative nonlinearity
-            deviation = relativeNonlinearity(graphs[i][j], extrapolated[i][j])
-            deviation.Write("Deviation Clusters Disk"+str(i+1)+"Ring"+str(j+1))
+            # deviation = relativeNonlinearity(graphs[i][j], extrapolated[i][j])
+            # deviation.Write("Deviation Clusters Disk"+str(i+1)+"Ring"+str(j+1))
 
             #save canvases for the individual disk/ring combos
             savecanvas = root.TCanvas("Clusters Disk"+str(i+1)+"Ring"+str(j+1),"Clusters Disk"+str(i+1)+"Ring"+str(j+1))
@@ -270,28 +316,17 @@ if observable == "Clusters":
             graphs[i][j].GetYaxis().SetTitleSize(0.04)
             graphs[i][j].GetYaxis().SetLabelSize(0.04)
             graphs[i][j].Draw("ap")
-            errors[i][j].Draw("e3 same")
-            extrapolated[i][j].Draw("same")
-            tepx = root.TLatex()
-            tepx.SetTextFont(42)
-            tepx.SetTextSize(0.04)
-            tepx.SetTextAlign(11)
-            tepx.DrawLatex(0.8,945,"#bf{CMS Phase-2} #it{Simulation Preliminary}") # 945 - D1R5; 1940 - D1R1,D4R1
-            energy = root.TLatex()
-            energy.SetTextFont(42)
-            energy.SetTextSize(0.04)
-            energy.SetTextAlign(11)
-            energy.DrawLatex(183,945,"#sqrt{s} = 14 TeV")
-            cmsprel = root.TLatex()
-            cmsprel.SetTextFont(42)
-            cmsprel.SetTextSize(0.035)
-            cmsprel.SetTextAlign(11)
-            cmsprel.DrawLatex(20,820,"#bf{Tracker Endcap Pixel Detector} Disk "+str(i+1)+" Ring "+str(j+1)) # 820 - D1R5; 1700 - D1R1,D4R1
+            # errors[i][j].Draw("e3 same")
+            # extrapolated[i][j].Draw("same")
             savecanvas.Write("Clusters Disk"+str(i+1)+"Ring"+str(j+1))
             index = index+1
 
     #Write out the summary as well
-    c_canvas.Write("SummaryClusters")
+    c_canvas.Write("SummaryStatError")
+    aCanvas = root.TCanvas("TEPX","TEPX")
+    aCanvas.cd()
+    TEPXgraph.Draw("ap")
+    aCanvas.Write("StatErrorTEPX")
     rootfile.Close()
 
 #second, let's only deal with the case for Hits
@@ -377,13 +412,11 @@ else:
             graphsreal[i][j].Draw("p same")
 
             #fit and extrapolate
-            #(extrapolated[i][j],errors[i][j]) = extrapolateLinear(graphsreal[i][j],2)
             (extrapolated[i][j],errors[i][j]) = extrapolateLinear(graphssum[i][j],2)
             errors[i][j].Draw("e3 same")
             extrapolated[i][j].Draw("same")
 
             #calculate relative nonlinearity
-            #deviation = relativeNonlinearity(graphsreal[i][j], extrapolated[i][j])
             deviation = relativeNonlinearity(graphssum[i][j], extrapolated[i][j])
             deviation.Write("Deviation "+observable+" Disk"+str(i+1)+"Ring"+str(j+1))
 
