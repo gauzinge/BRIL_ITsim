@@ -3,26 +3,30 @@
 ### Preface
 This guide is intended for people working on the BRIL Phase II upgrade, more specifically simulations of the Inner Tracker for Lumi measurements. It gives detailed instructions on how to set up and run simulations with custom IT geometries and varying levels of pileup. It is sectioned in the following parts:
 
-1. setting up an appropriate CMSSW Environment
-1. using custom geometry files exported from [TkLayout](http://tklayout.web.cern.ch)
-1. generating Minimum Bias Events using the custom geometry to use as Pileup input for the rest of the simulation
-1. running the full simulation
+1. Setting up an appropriate CMSSW environment
+1. Using custom geometry files exported from [TkLayout](http://tklayout.web.cern.ch)
+1. Generating Minimum Bias Events using the custom geometry to use as Pileup input for the rest of the simulation (_see Note below_)
+1. Running the full simulation (_see Note below_)
     * locally using the runSim.sh script that wraps cmsDriver commands and a custom config file for more convenience
     * on the HT Condor batch system using the runSim.sh script and a submission file
-1. runnig the BRIL ITclusterAnalyzer on the output EDM file to populate BRIL relevant histograms for further analysis
+1. Running the BRIL ITclusterAnalyzer on the output EDM file to populate BRIL relevant histograms for further analysis
+    * locally
+    * using the HT Condor batch system
+
+**Note:** these sections describe how to produce private samples. However, there are centrally produced samples available that include not only the IT, but also information from all CMS sub-systems. See below for all details. 
 
 ### Setting up an Environment
-It is preferrable to run these steps on a machine with access to the CERN cvmfs read-only filesystem as this allows to use different CMSSW releases -- this usually means lxplus. Before you get started, make sure that you have a few GB of available space in the directory you want to run in. This could either be /afs or /eos. The release this guide is based on is `CMSSW_10_4_0_pre2` that you set up like so:
+It is preferrable to run these steps on a machine with access to the CERN cvmfs read-only filesystem as this allows to use different CMSSW releases -- this usually means lxplus. Before you get started, make sure that you have a few GB of available space in the directory you want to run in. This could either be /afs or /eos. The release this guide is based on is `CMSSW_10_6_0_patch2` that you set up like so:
 
 ```sh
 source $VO_CMS_SW_DIR/cmsset_default.sh
 mkdir mySimDir
 cd mySimDir
-cmsrel CMSSW_10_4_0_pre2
-cd CMSSW_10_4_0_pre2/src/
+cmsrel CMSSW_10_6_0_patch2
+cd CMSSW_10_6_0_patch2/src/
 ```
 
-This creates a CMSSW working area in the directory mySimDir/ where a directory tree is created in the CMSSW_10_4_0_pre2/ folder. All your code and packages are always going to the `/src` subdirecory - it is the only place where you will be working.
+This creates a CMSSW working area in the directory mySimDir/ where a directory tree is created in the `CMSSW_10_6_0_patch2/` folder. All your code and packages are always going to the `/src` subdirectory - it is the only place where you will be working.
 
 ```sh
 cmsenv
@@ -40,18 +44,18 @@ git cms-addpkg SLHCUpgradeSimulations/Geometry
 ```
 
 ### Using custom Geometries
-Once done with the previous step, you have to get the custom geometry files and put them in the appropriate place. First, you have to check out this repo in your CMSSW work area, so `mySimDir/CMSSW_10_4_0_pre2/src`.
+Once done with the previous step, you have to get the custom geometry files and put them in the appropriate place. First, you have to check out this repo in your CMSSW work area `mySimDir/CMSSW_10_6_0_patch2/src` or, equivalently, `$CMSSW_BASE/src`.
 
 ```sh
-cd mySimDir/CMSSW_10_4_0_pre2/src
+cd $CMSSW_BASE/src
 git clone https://github.com/gauzinge/BRIL_ITsim.git
 cd BRIL_ITsim
 ```
 
-or better yet fork the repo to your github account! Now you can call the `copyGeo.sh` with the following arguments: `-s=mysourceDir -d=mydestDir` to copy all relevant geometry files from the source (most likely `mySimDir/BRIL_ITsim/ITGeometries/OT614_200_IT612` or `mySimDir/BRIL_ITsim/ITGeometries/OT614_200_IT613` in this repo as source and `mySimDir/CMSSW_10_4_0_pre2/src` as destination). Alternatively you can hardcode the paths in the copyGeo.sh script. If you use command line parsing you need to provide the absolute path. At the time of writing IT geometry 6.1.3 is the latest and greatest.
+or better yet fork the repo to your github account! Now you can call the `copyGeo.sh` with the following arguments: `-s=mysourceDir -d=mydestDir` to copy all relevant geometry files from the source (most likely `$CMSSW_BASE/src/BRIL_ITsim/ITGeometries/OT614_200_IT613` in this repo as source and `$CMSSW_BASE/src` as destination). Alternatively you can hardcode the paths in the `copyGeo.sh` script. If you use command line parsing you need to provide the absolute path. At the time of writing, IT geometry 6.1.3 is the latest and greatest.
 
 ```sh
-source copyGeo.sh -s=mySimDir/CMSSW_10_4_0_pre2/src//BRIL_ITsim/ITGeometries/OT614_200_IT613 -d=mySimDir/CMSSW_10_4_0_pre2/src
+source copyGeo.sh -s=$CMSSW_BASE/src/BRIL_ITsim/ITGeometries/OT614_200_IT613 -d=$CMSSW_BASE/src
 ```
 
 The next step is crucial, so pay attention: since you modified the geometry files you have to re-build your added CMSSW sources. This is done using the scram command
