@@ -213,9 +213,28 @@ Depending on the number of events you want to simulate, you should generate N mi
 The PU is your max PU number so most likely 200, the *OOT_PU_range* is the number of BX that are simulated around the actual event to account for out-of-time Pileup. The default value is 15. Since N in the above quickly explodes, in practice it should be ok to generate a factor of 10 more minBias events than events you want to have as statistics. So for 10k events, use 100k minBias events.
 
 
+#### Centrally produced samples
+
+They contain the full detector information and are available in the Grid. The full list can be obtained from the CMS DAS [here](https://cmsweb.cern.ch/das/request?view=list&limit=50&instance=prod%2Fglobal&input=dataset+status%3D*+dataset%3D%2FRelValNuGun%2FCMSSW_10_6_0_patch2*2023D42*%2F*).
+
+**Important:** since these samples are stored in the Grid, you need to get a Grid certificate. See [here](https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookStartingGrid) for instructions on how to do so.
+
+
 ###  Running the BRIL IT Cluster analyzer
 
-The last step for now is running the ITclusterAnalyzer package written for CMSSW. It runs over the file you created in the last step and creates some histograms relevant for BRIL studies. It is a standard EDAnalyzer class in CMSSW and the source code can be found in `$CMSSW_BASE/src/BRIL_ITsim/ITclusterAnalyzer/plugins`. Have a look. The config file is in `$CMSSW_BASE/src/BRIL_ITsim/ITclusterAnalyzer/python/ITclusterAnalyzer_cfg.py`. You should edit this file to contain the right path for the step3 file you created in the previous step of the simulation and you can modify the cuts for coincidence searches if you want - you can also disable those. The file should be pretty self explanatory.
+The last step for now is running the ITclusterAnalyzer package written for CMSSW. It runs over the simulated files and creates some histograms relevant for BRIL studies. It is a standard EDAnalyzer class in CMSSW and the source code can be found in `$CMSSW_BASE/src/BRIL_ITsim/ITclusterAnalyzer/plugins`. Have a look. 
+
+#### Running locally
+
+The config file is in `$CMSSW_BASE/src/BRIL_ITsim/ITclusterAnalyzer/python/ITclusterAnalyzer_cfg.py`. You should edit this file to contain the right path for the file you want to analyze (to access the files from the centrally produced samples you need to use [xrootd](https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookXrootdService)) and you can modify the cuts for coincidence searches if you want - you can also disable those. The file should be pretty self explanatory.
+
+For the _official_ samples, you need to create a proxy before attempting to run because otherwise you will not be able to access them and the job will fail.
+
+```sh
+voms-proxy-init -voms cms --valid 168:00
+```
+
+Then you can do:
 
 ```sh
 cd BRIL_ITsim
@@ -234,12 +253,16 @@ new TBrowser
 
 Have a look around, try to understand the generated histograms and do with them what you like.
 
-In case you were batch processing multiple jobs in parallel (or want to merge locally generated files) you can also use the `runAnalysis.sh` script in this repo. As usual, make sure the paths are ok in the file (meaning you need to change them!). Iy will loop over all `step3_pixel_PU_${PU}.${JOBID}.root` files in your data directory and generate the summary.root files for each of them and merge them in the end. The only command line argument is the Pileup step to process (pay attention to provide a double, so for PU 10 use CMD line argument 10.0):
+In case you want to process multiple files you can also use the scripts provided in this repo. The script `runAnalysis.sh` works for our private samples, whereas the script `new_runAnalysis.sh` should be used for the centrally produced samples. As usual, make sure the paths are ok in the file (meaning you need to change them!). It will loop over all input files and generate the summary.root files for each of them and merge them in the end. The only command line argument is the Pileup step to process (pay attention to provide a double, so for PU 10 use CMD line argument 10.0):
 
 ```sh
 ./runAnalysis.sh 10.0
 ```
 
-to process all `step3_XXXXX` files for PU 10 and generate a single summary file for this pileup value.
+to process all files for PU 10 and generate a single summary file for this pileup value.
 
-If you have any bug reports or questions, contact me or Cristina Oropeza!
+#### Running the analysis on the HT Condor batch
+
+**Under construction!**
+
+If you have any bug reports or questions, contact me!
