@@ -52,7 +52,7 @@ git clone https://github.com/gauzinge/BRIL_ITsim.git
 cd BRIL_ITsim
 ```
 
-or better yet fork the repo to your github account! Now you can call the `copyGeo.sh` with the following arguments: `-s=mysourceDir -d=mydestDir` to copy all relevant geometry files from the source (most likely `$CMSSW_BASE/src/BRIL_ITsim/ITGeometries/OT614_200_IT613` in this repo as source and `$CMSSW_BASE/src` as destination). Alternatively you can hardcode the paths in the `copyGeo.sh` script. If you use command line parsing you need to provide the absolute path. At the time of writing, IT geometry 6.1.3 is the latest and greatest.
+or better yet fork the repo to your github account! Now you can call the `copyGeo.sh` with the following arguments: `-s=mysourceDir -d=mydestDir` to copy all relevant geometry files from the source (most likely `$CMSSW_BASE/src/BRIL_ITsim/ITGeometries/OT614_200_IT613` in this repo as source and `$CMSSW_BASE/src` as destination). Alternatively you can hardcode the paths in the `copyGeo.sh` script. If you use command line parsing you need to provide the absolute path. At the time of writing, IT geometry 6.1.3 is the latest and greatest. Full details [here](http://ghugo.web.cern.ch/ghugo/layouts/T15/OT616_200_IT613/layoutpixel.html).
 
 ```sh
 source copyGeo.sh -s=$CMSSW_BASE/src/BRIL_ITsim/ITGeometries/OT614_200_IT613 -d=$CMSSW_BASE/src
@@ -82,7 +82,7 @@ The next step is to generate a large enough sample of Minimum Bias events for yo
 
 The first argument is the number of events to generate and the second is the jobid for batch processing (for now you can set it to 0).
 
-Alternatively you can use any of these files: `/afs/cern.ch/work/g/gauzinge/public/minBiasFiles/` which use geometry IT613. There are many such files and they can be provided to the pileup input as a list in the next stage.
+Alternatively (**preferably**) you can use any of these files: `/afs/cern.ch/work/g/gauzinge/public/minBiasFiles/` which use geometry IT613. There are many such files and they can be provided to the pileup input as a list in the next stage.
 
 #### Using runTheMatrix (not recommended)
 
@@ -212,6 +212,8 @@ Depending on the number of events you want to simulate, you should generate N mi
 
 The PU is your max PU number so most likely 200, the *OOT_PU_range* is the number of BX that are simulated around the actual event to account for out-of-time Pileup. The default value is 15. Since N in the above quickly explodes, in practice it should be ok to generate a factor of 10 more minBias events than events you want to have as statistics. So for 10k events, use 100k minBias events.
 
+**Note:** Private samples for various PU values are available in: `/eos/user/g/gauzinge/PUdata/`. These contain only pixel information and were simulated using geometry **IT613** and geometry scenario **2023D21**.
+
 
 #### Centrally produced samples
 
@@ -256,10 +258,12 @@ Have a look around, try to understand the generated histograms and do with them 
 In case you want to process multiple files you can also use the scripts provided in this repo. The script `runAnalysis.sh` works for our private samples, whereas the script `new_runAnalysis.sh` should be used for the centrally produced samples. As usual, make sure the paths are ok in the file (meaning you need to change them!). It will loop over all input files and generate the summary.root files for each of them and merge them in the end. The only command line argument is the Pileup step to process (pay attention to provide a double, so for PU 10 use CMD line argument 10.0):
 
 ```sh
-./runAnalysis.sh 10.0
+./new_runAnalysis.sh 10.0
 ```
 
 to process all files for PU 10 and generate a single summary file for this pileup value.
+
+**Warning:** currently, for the centrally produced samples, one needs to manually enter the name of the corresponding input text file containing the names of all files for a given PU value. This will be fixed shortly!
 
 #### Running the analysis on the HT Condor batch
 

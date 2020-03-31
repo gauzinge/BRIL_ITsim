@@ -38,12 +38,12 @@ def getParams(hist, ring):
         # print("Problem with the fit, using simple mean - fit status:",status)
     # else:
         # mean = fit.GetParameter(1)
-    if mean == 0.5:
-        mean = 0
-        sigma = 0
-    else:
-        sigma = math.sqrt(mean)
-        # sigma = ringhist.GetRMS()
+    #if mean == 0.5:
+    #    mean = 0
+    #    sigma = 0
+    #else:
+        #sigma = math.sqrt(mean)
+    sigma = ringhist.GetRMS()
     # if mean == 0.5:
         # mean = 0
 
@@ -377,11 +377,13 @@ else:
             graphsreal[i][j].Draw("p same")
 
             #fit and extrapolate
+            #(extrapolated[i][j],errors[i][j]) = extrapolateLinear(graphsreal[i][j],2)
             (extrapolated[i][j],errors[i][j]) = extrapolateLinear(graphssum[i][j],2)
             errors[i][j].Draw("e3 same")
             extrapolated[i][j].Draw("same")
 
             #calculate relative nonlinearity
+            #deviation = relativeNonlinearity(graphsreal[i][j], extrapolated[i][j])
             deviation = relativeNonlinearity(graphssum[i][j], extrapolated[i][j])
             deviation.Write("Deviation "+observable+" Disk"+str(i+1)+"Ring"+str(j+1))
 
