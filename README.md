@@ -84,9 +84,9 @@ The first argument is the number of events to generate and the second is the job
 
 Alternatively you can use any of these files: `/afs/cern.ch/work/g/gauzinge/public/minBiasFiles/` which use geometry IT613. There are many such files and they can be provided to the pileup input as a list in the next stage.
 
-#### Using `runTheMatrix.py` (not recommended)
+#### Using runTheMatrix (not recommended)
 
-It is important to choose the right scenario which in our case is the Phase II upgrade. The name is *2023D42*.
+It is important to choose the right scenario which in our case is the Phase II upgrade. The name is **2023D42**.
 
 ```sh
 runTheMatrix.py --what upgrade -l 21240 -ne
@@ -106,7 +106,7 @@ mkdir myMinBiasSample
 mv MinBias_14TeV_pythia8_TuneCUETP8M1_cfi_GEN_SIM.* myMinBiasSample/
 ```
 
-Congratulations, you are almost done! In order to use these events you have to edit a file in `$CMSSW_BASE/src/Configuration/PyReleaseValidation/python/relval_steps.py`. The easiest is to search for the string _PUData_ in your editor. Then edit these lines:
+Congratulations, you are almost done! In order to use these events you have to edit a file in `$CMSSW_BASE/src/Configuration/PyReleaseValidation/python/relval_steps.py`. The easiest is to search for the string `PUData` in your editor. Then edit these lines:
 
 ```python
 PUDataSets={}
@@ -140,14 +140,15 @@ Congratulations, you are all set for running the actual simulation!
 ### Running the full Simulation
 There are 3 possible ways to run the full simulation. The normal way using the `runTheMatrix.py` command, a wrapper script called `runSim.sh` that is part of this repo or in batch mode on the CERN HT Condor batch service. The details will be described in the following sections!
 
-#### RunTheMatrix - just to validate your working environment
+
+#### runTheMatrix - just to validate your working environment
 Now, to test your working environment, you can use the `runTheMatrix.py` script provided with CMSSW. Again, this will launch a 3 step process of generating events of a certain type, simulating the detector response and reconstruction of the events. More specifically, the pixel clustering happens in step3 (the RECO step). The scenario we want to use for our purposes is a single Neutrino (so an empty detector) overlaid with a variable number of pileup. The scenario has the label **21461**. So in your CMMSW `src` directory run:
 
 ```sh
 runTheMatrix.py --what upgrade -l 21461 --command "-n 100"
 ```
 
-The `--command "-n 100"` specifies 100 events. Change it if you want but be patient. Oh, and the default pileup number is 35. You can't easily change it in this workflow but it is essentially just a test to test the environment. Wait for the process to complete and then check your working directory: you should see files step1.root, step2.root and step3.root. The file you are interested in is **always** `step3.root`. Try verifying that it contains a collection of type *SiPixelCluster*:
+The `--command "-n 100"` specifies 100 events. Change it if you want but be patient. Oh, and the default pileup number is 35. You can't easily change it in this workflow but it is essentially just a test to test the environment. Wait for the process to complete and then check your working directory: you should see files step1.root, step2.root and step3.root. The file you are interested in is **always** `step3.root`. Try verifying that it contains a collection of type `SiPixelCluster`:
 
 ```sh
 edmDumpEventContent step3.root | grep SiPixelCluster
@@ -155,7 +156,8 @@ edmDumpEventContent step3.root | grep SiPixelCluster
 
 See something? Great, you are done for this part. 
 
-#### Running simulations locally using the runSim.sh script **(recommended)**
+
+#### Running simulations locally using the runSim.sh script (recommended)
 
 Since the above workflow is tedious and does not really give you fine control over the options (plus it runs a bunch of processes that we don't need) it is usually better to use the `runSim.sh` script provided with this repo. It has some filepaths hardcoded (for example the path to put the output files and the pileup input files) so you want to open it in your editor and fix all the paths at the top of the script - you may also want to change the number of threads to something reasonable for your job. 
 
@@ -189,10 +191,10 @@ Now you are ready to run the script. The `runSim.sh` script takes 3 command line
 ./runSim.sh PU NEVENTS JOBID
 ```
 
-The first one is the PU you want to run and any number can be specified, the second one is the number of events and the third one is a jobid (irrelevant for this case but important in batch mode) - please always provide all three. For now you can set the jobid to 0. This runs all three steps of the `runTheMatrix.py` command in a single process and in addition slims the output *step3.root* file down to only contain pixel relevant collections. The resulting output file is called `step3_pixel_PU_${PU}.${JOBID}.root` where ${PU} and ${JOBID} are replaced with your command line arguments. This is the file we will use as input to the ITclusterAnalyzer later.
+The first one is the PU you want to run and any number can be specified, the second one is the number of events and the third one is a jobid (irrelevant for this case but important in batch mode) - please always provide all three. For now you can set the jobid to 0. This runs all three steps of the `runTheMatrix.py` command in a single process and in addition slims the output `step3.root` file down to only contain pixel relevant collections. The resulting output file is called `step3_pixel_PU_${PU}.${JOBID}.root` where ${PU} and ${JOBID} are replaced with your command line arguments. This is the file we will use as input to the ITclusterAnalyzer later.
 
 
-#### Running simulations on CERN HT Condor batch service
+#### Running simulations on CERN HT Condor batch service (recommended)
 
 Before you do anything, first read the HT Condor [guide](http://batchdocs.web.cern.ch/batchdocs/tutorial/introduction.html) including chapter 3. 
 
@@ -202,19 +204,18 @@ Done? Good, now you know about submission files. Have a look at the `generatePU.
 condor_submit generatePU.sub
 ```
 
-and be patient and watch as your quota goes away....Happy simulating!
+and be patient and watch as your quota goes away... Happy simulating!
 
 There is also a wrapper script for the generation of the MinBias sample called `runMinBias.sh` and a corresponding `generateMinBias.sub` submission file. Functionality is exactly the same except that `runMinBias.sh` takes only the number of events as command line argument. As always, check all variables and paths in these scripts before running.
 
-Depending on the number of events you want to simulate, you should generate N minBias events where
-N = Nevents * PU * OOT_PU_range
+Depending on the number of events you want to simulate, you should generate N minBias events where: *N = Nevents * PU * OOT_PU_range*
 
-The PU is your max PU number so most likely 200, the OOT_PU_range is the number of BX that are simulated around the actual event to account for out-of-time Pileup. The default value is 15. Since N in the above quickly explodes, in practice it should be ok to generate a factor of 10 more minBias events than events you want to have as statistics. So for 10k events, use 100k minBias events.
+The PU is your max PU number so most likely 200, the *OOT_PU_range* is the number of BX that are simulated around the actual event to account for out-of-time Pileup. The default value is 15. Since N in the above quickly explodes, in practice it should be ok to generate a factor of 10 more minBias events than events you want to have as statistics. So for 10k events, use 100k minBias events.
 
 
 ###  Running the BRIL IT Cluster analyzer
 
-The last step for now is running the ITclusterAnalyzer package written for CMSSW. It runs over the file you created in the last step and creates some histograms relevant for BRIL studies. It is a standard EDAnalyzer class in CMSSW and the source code can be found in `CMSSW_10_4_0_pre2/src/BRIL_ITsim/ITclusterAnalyzer/plugins`. Have a look. The config file is in `CMSSW_10_4_0_pre2/src/BRIL_ITsim/ITclusterAnalyzer/python/ITclusterAnalyzer_cfg.py`. You should edit this file to contain the right path for the step3 file you created in the previous step of the simulation and you can modify the cuts for coincidence searches if you want - you can also disable those. The file should be pretty self explanatory.
+The last step for now is running the ITclusterAnalyzer package written for CMSSW. It runs over the file you created in the last step and creates some histograms relevant for BRIL studies. It is a standard EDAnalyzer class in CMSSW and the source code can be found in `$CMSSW_BASE/src/BRIL_ITsim/ITclusterAnalyzer/plugins`. Have a look. The config file is in `$CMSSW_BASE/src/BRIL_ITsim/ITclusterAnalyzer/python/ITclusterAnalyzer_cfg.py`. You should edit this file to contain the right path for the step3 file you created in the previous step of the simulation and you can modify the cuts for coincidence searches if you want - you can also disable those. The file should be pretty self explanatory.
 
 ```sh
 cd BRIL_ITsim
@@ -233,13 +234,12 @@ new TBrowser
 
 Have a look around, try to understand the generated histograms and do with them what you like.
 
-In case you were batch processing multiple jobs in parallel (or want to merge locally generated files) you can also use the `runAnalysis.sh` script in this repo. As usual, make sure the paths are ok in the file (meaning you need to change them!). IT will loop over all `step3_pixel_PU_${PU}.${JOBID}.root` files in your data directory and gernerate the summary.root files for each of them and merge them in the end. The only command line argument is the Pileup step to process (pay attention to provide a double, so for PU 10 use CMD line argument 10.0):
+In case you were batch processing multiple jobs in parallel (or want to merge locally generated files) you can also use the `runAnalysis.sh` script in this repo. As usual, make sure the paths are ok in the file (meaning you need to change them!). Iy will loop over all `step3_pixel_PU_${PU}.${JOBID}.root` files in your data directory and generate the summary.root files for each of them and merge them in the end. The only command line argument is the Pileup step to process (pay attention to provide a double, so for PU 10 use CMD line argument 10.0):
 
 ```sh
 ./runAnalysis.sh 10.0
 ```
 
-to process all step3_XXXXX files for PU 10 and generate a single summary file for this pileup value.
+to process all `step3_XXXXX` files for PU 10 and generate a single summary file for this pileup value.
 
-
-if you have any bug reports or questions, contact me!
+If you have any bug reports or questions, contact me or Cristina Oropeza!
