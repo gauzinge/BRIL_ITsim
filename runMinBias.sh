@@ -8,7 +8,8 @@ JOBID=$2
 ##CHANGE ME ACCORDING TO YOUR NEEDS
 ################################################################################
 NTHREADS=10
-OUTDIR=/afs/cern.ch/work/g/gauzinge/public/minBiasFiles
+OUTDIR=/afs/cern.ch/work/c/corderom/public/minBiasFiles
+#OUTDIR=/afs/cern.ch/work/g/gauzinge/public/minBiasFiles
 ################################################################################
 ################################################################################
 ################################################################################

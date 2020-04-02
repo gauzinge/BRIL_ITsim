@@ -27,7 +27,8 @@ NTHREADS=10
 FILE=file:
 PUPATH=/afs/cern.ch/work/g/gauzinge/public/minBiasFiles
 
-OUTDIR=/eos/user/g/gauzinge/PUdata
+#OUTDIR=/eos/user/g/gauzinge/PUdata
+OUTDIR=/eos/user/c/corderom/PUdata
 #
 # COB high-pileuo samples
 #OUTDIR=/eos/user/c/cbarrera/BRIL_ITsim_PUsamples
@@ -109,12 +110,15 @@ echo '##########################################################################
 #SETUP CMSSW FRAMEWORK
 ################################################################################
 
+
 #Extract sandbox
 tar -xf sandbox.tar.bz2
 #Keep track of release sandbox version
 basedir=$PWD
 rel=$(echo CMSSW_*)
 arch=$(ls $rel/.SCRAM/|grep slc) || echo "Failed to determine SL release!"
+SCRAM_ARCH=slc7_amd64_gcc820
+export $SCRAM_ARCH
 old_release_top=$(awk -F= '/RELEASETOP/ {print $2}' $rel/.SCRAM/slc*/Environment) || echo "Failed to determine old releasetop!"
  
 # Creating new release
@@ -196,6 +200,7 @@ else
     echo 'Command3: ' ${step3}
 
     #do it!
+    cmsenv
     ${step1}
     ${step2}
     rm step1.root

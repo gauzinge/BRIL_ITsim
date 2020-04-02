@@ -2,17 +2,29 @@
 import FWCore.ParameterSet.Config as cms
 import FWCore.ParameterSet.VarParsing as VarParsing
 
-# create a new CMS process
-process = cms.Process("ITclusterAnalyzer")
+analyzer = "ITclusterAnalyzer"
+#analyzerCode = "ITclusterAnalyzer_hits"
+analyzerCode = "ITclusterAnalyzer_ORIGINAL"
+#analyzerCode = "ITclusterAnalyzer"
 
+
+# create a new CMS process
+#process = cms.Process("ITclusterAnalyzer_hits")
+process = cms.Process(analyzer)
+
+print("--------------------------------1")
 # set up the options
 options = VarParsing.VarParsing('analysis')
 #set up the defaults
-options.inputFiles = 'file:/eos/user/g/gauzinge/PUdata/step3_pixel_PU_1.1.root'
-# options.inputFiles = 'file:/afs/cern.ch/user/g/gauzinge/ITsim/CMSSW_10_4_0_pre2/src/BRIL_ITsim/step3_pixel_PU_10.0.root'
-# options.inputFiles = 'file:/afs/cern.ch/work/c/cbarrera/private/BRIL/outputDir/step3_pixel_PU_20.0.0.root'
-options.outputFile='summary.root'
-options.maxEvents = -1 #all events
+options.inputFiles = 'file:/afs/cern.ch/user/c/corderom/public/PUdata/step3_pixel_PU_1.0.0.root'
+#options.inputFiles = 'file:/eos/user/g/gauzinge/PUdata/step3_pixel_PU_1.0.0.root'
+options.outputFile='/afs/cern.ch/user/c/corderom/private/mySimDir/CMSSW_10_4_0_pre2/src/BRIL_ITsim/AnalysisOut/summary_runSim.root'
+#options.inputFiles = 'file:/afs/cern.ch/user/c/corderom/public/PUdata/step3_pixel_PU_10.0.root'
+#options.outputFile='/afs/cern.ch/user/c/corderom/private/mySimDir/CMSSW_10_4_0_pre2/src/BRIL_ITsim/AnalysisOut/summary.root'
+options.maxEvents = 200 #all events
+#options.maxEvents = 5 #all events
+#options.maxEvents = -1 #all events
+#options.maxEvents = 100000 #all events
 
 #get and parse command line arguments
 options.parseArguments()
@@ -21,10 +33,11 @@ options.parseArguments()
 process.load('Configuration.Geometry.GeometryExtended2023D21Reco_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
 
+print("--------------------------------9")
 # initialize MessageLogger and output report
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.MessageLogger.cerr.threshold = 'INFO'
-process.MessageLogger.categories.append('ITclusterAnalyzer')
+process.MessageLogger.categories.append(analyzerCode)
 process.MessageLogger.cerr.INFO = cms.untracked.PSet(
     limit=cms.untracked.int32(-1)
 )
@@ -43,7 +56,8 @@ process.source = cms.Source("PoolSource",
 
 process.content = cms.EDAnalyzer("EventContentAnalyzer")
 # the config of my analyzer
-process.BRIL_IT_Analysis = cms.EDAnalyzer('ITclusterAnalyzer',
+print("--------------------------------10")
+process.BRIL_IT_Analysis = cms.EDAnalyzer(analyzerCode,
                                          clusters=cms.InputTag("siPixelClusters"),
                                          simlinks=cms.InputTag("simSiPixelDigis", "Pixel", "FULLSIM"),
                                          digis=cms.InputTag("simSiPixelDigis", "Pixel", "FULLSIM"),
@@ -56,6 +70,7 @@ process.BRIL_IT_Analysis = cms.EDAnalyzer('ITclusterAnalyzer',
                                          dz_cut=cms.double(0.9)
                                          )
 
+print("--------------------------------20")
 # the TFIleService that produces the output root files
 process.TFileService = cms.Service("TFileService",
                                    fileName=cms.string(options.outputFile)

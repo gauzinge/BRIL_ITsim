@@ -1,0 +1,20 @@
+PU_parameter          = 100.0
+
+universe              = vanilla
+should_transfer_files = yes
+WhenToTransferOutput  = ON_EXIT
+
+executable            = runAnalysis.sh
+arguments             = $(PU_parameter) 
+output                = batchlog/runAnalysis.$(ClusterId).$(ProcId).out
+error                 = batchlog/runAnalysis.$(ClusterId).$(ProcId).err
+log                   = batchlog/runAnalysis.$(ClusterId).log
+transfer_input_files  = sandbox.tar.bz2
+#getenv              = True
+request_cpus          = 10
+requirements          = (OpSysAndVer =?= "SLCern6")
+
+
+transfer_output_files = ""
+#+JobFlavour           = "nextweek"
+queue 

@@ -52,6 +52,7 @@ Implementation:
 #include "CommonTools/Utils/interface/TFileDirectory.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 
+#include <TTree.h>
 #include <TH2F.h>
 
 //
@@ -97,6 +98,7 @@ private:
     bool findCoincidence2x(DetId, Global3DPoint, unsigned int&, edmNew::DetSet<SiPixelCluster>::const_iterator&);
     bool findCoincidence3x(DetId, Global3DPoint, unsigned int&, edmNew::DetSet<SiPixelCluster>::const_iterator&);
     edm::DetSetVector<PixelDigiSimLink>::const_iterator findSimLinkDetSet(unsigned int thedetid);
+    bool isMerged(edm::DetSetVector<PixelDigiSimLink>::const_iterator, edmNew::DetSet<SiPixelCluster>::const_iterator, bool print);
     std::set<unsigned int> getSimTrackId(edm::DetSetVector<PixelDigiSimLink>::const_iterator, edmNew::DetSet<SiPixelCluster>::const_iterator, bool print);
     bool areSameSimTrackId(std::set<unsigned int> first, std::set<unsigned int> second, std::set<unsigned int>&);
 
@@ -155,8 +157,53 @@ private:
 
     //the number of clusters per module
     TH1F* m_nClusters;
+    TH1F* m_nClustersV1;
     TH1F* m_nHits;
 
+   
+    //Added by Joseph Cordero Mercado
+    //---- cluster size
+    TH1F* m_HitX;
+    TH1F* m_HitY;
+    TH1F* m_HitZ;
+
+    TH1F* m_CluX;
+    TH1F* m_CluY;
+    TH1F* m_CluZ;
+
+    TH1F* m_CluPhi;
+    TH1F* m_CluTheta;
+
+    TH1F* m_mergeClus;
+
+    TH2F* m_ClusterXsize[8];
+    TH2F* m_ClusterYsize[8];
+    TH2F* m_ClusterArea[8];
+
+
+    TFile *outFileHit;
+    TTree *outTreeHit;
+    double HitX;
+    double HitY;
+    double HitZ;
+    double HitTheta;
+    double HitPhi;
+    unsigned int HitNum;
+    unsigned int mergeHit;
+
+    TFile *outFileCluster;
+    TTree *outTreeCluster;
+    double CluX;
+    double CluY;
+    double CluZ;
+    double CluArea;
+    double CluSize;
+    double CluTheta;
+    double CluPhi;
+    double CluCharge;
+    unsigned int CluNum;
+    unsigned int CluMerge;
+    unsigned int mergeClu;
     //cuts for the coincidence
     double m_dx;
     double m_dy;
@@ -215,8 +262,36 @@ ITclusterAnalyzer::~ITclusterAnalyzer()
 // ------------ method called once each job just before starting event loop  ------------
 void ITclusterAnalyzer::beginJob()
 {
-	edm::Service<TFileService> fs;
 
+	outFileHit = new TFile("Hits.root","RECREATE");
+	outFileHit->cd();
+	outTreeHit = new TTree("hits_tree","hits");
+
+	outTreeHit->Branch("HitX"      , &HitX);
+	outTreeHit->Branch("HitY"      , &HitY);
+	outTreeHit->Branch("HitZ"      , &HitZ);
+	outTreeHit->Branch("HitTheta"  , &HitTheta);
+	outTreeHit->Branch("HitPhi"    , &HitPhi);
+	outTreeHit->Branch("HitNum"    , &HitNum);
+
+	outFileCluster = new TFile("Cluster.root","RECREATE");
+	outFileCluster->cd();
+	outTreeCluster = new TTree("cluster_tree","cluster");
+
+	outTreeCluster->Branch("CluX"      , &CluX);
+	outTreeCluster->Branch("CluY"      , &CluY);
+	outTreeCluster->Branch("CluZ"      , &CluZ);
+	outTreeCluster->Branch("CluTheta"  , &CluTheta);
+	outTreeCluster->Branch("CluPhi"    , &CluPhi);
+	outTreeCluster->Branch("CluCharge" , &CluCharge);
+	outTreeCluster->Branch("CluArea"   , &CluArea);
+	outTreeCluster->Branch("CluSize"   , &CluSize);
+	outTreeCluster->Branch("CluMerge"  , &CluMerge);
+	outTreeCluster->Branch("CluNum"    , &CluNum);
+	//m_nClustersV1 = td.make<TH1F>("Number of Clusters per module per event", "# of Clusters;# of Clusters; Occurence", 500, 0, 500);
+	//////////////////////////////////////////////////////
+	edm::Service<TFileService> fs;
+	//////////////////////////////////////////////////////
 	fs->file().cd("/");
 	TFileDirectory td = fs->mkdir("Residuals");
 
@@ -229,8 +304,18 @@ void ITclusterAnalyzer::beginJob()
 	m_nClusters = td.make<TH1F>("Number of Clusters per module per event", "# of Clusters;# of Clusters; Occurence", 500, 0, 500);
         m_nHits = td.make<TH1F>("Number of Hits per module per event", "# of Hits; # of Hits; Occurrences", 500, 0, 500);
 
+	//////////////////////////////////////////////////////
 	fs->file().cd("/");
 	td = fs->mkdir("Clusters");
+
+	m_CluX = td.make<TH1F>("CluX", "CluX;X;counts", 1000, -50, 50);
+	m_CluY = td.make<TH1F>("CluY", "CluY;Y;counts", 1000, -50, 50);
+	m_CluZ = td.make<TH1F>("CluZ", "CluR;Z;counts", 6000, -300, 300);
+
+	m_CluPhi = td.make<TH1F>("CluPhi", "CluPhi;Phi;counts", 1000, -4, 4);
+	m_CluTheta = td.make<TH1F>("CluTheta", "CluTheta;Theta;counts", 1000, -4, 4);
+
+	m_mergeClus = td.make<TH1F>("mergeClu","mergeClu;merge;# of merged events",5,0,5);	
 
 	//now lets create the histograms
 	for (unsigned int i = 0; i < 8; i++) {
@@ -241,13 +326,37 @@ void ITclusterAnalyzer::beginJob()
 		histotitle << "Number of clusters for Disk " << disk;
 		//name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
 		m_diskHistosCluster[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
+
+		
+		// Added by Joseph Cordero Mercado
+		std::stringstream histonameSizeX;
+		histonameSizeX << "SizeX of clusters for Disk " << disk << ";Ring;SizeX of Clusters per event";
+		std::stringstream histotitleSizeX;
+		histotitleSizeX << "SizeX of clusters for Disk " << disk;
+		m_ClusterXsize[i] = td.make<TH2F>(histotitleSizeX.str().c_str(), histonameSizeX.str().c_str(),5,0.5,5.5,15,0,15);
+
+		std::stringstream histonameSizeY;
+		histonameSizeY << "SizeY of clusters for Disk " << disk << ";Ring;SizeY of Clusters per event";
+		std::stringstream histotitleSizeY;
+		histotitleSizeY << "SizeY of clusters for Disk " << disk;
+		m_ClusterYsize[i] = td.make<TH2F>(histotitleSizeY.str().c_str(), histonameSizeY.str().c_str(),5,0.5,5.5,15,0,15);
+
+		std::stringstream histonameArea;
+		histonameArea << "Area of clusters for Disk " << disk << ";Ring;Area of Clusters per event";
+		std::stringstream histotitleArea;
+		histotitleArea << "Area of clusters for Disk " << disk;
+		m_ClusterArea[i]  = td.make<TH2F>(histotitleArea.str().c_str(), histonameArea.str().c_str(),5,0.5,5.5,100,0,100);
 	}
 	m_trackerLayoutClustersZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
 	m_trackerLayoutClustersYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
 
+	//////////////////////////////////////////////////////
         fs->file().cd("/");
         td = fs->mkdir("Hits");
 
+	m_HitX = td.make<TH1F>("HitX", "HitX;X;counts", 1000, -50, 50);
+	m_HitY = td.make<TH1F>("HitY", "HitY;Y;counts", 1000, -50, 50);
+	m_HitZ = td.make<TH1F>("HitZ", "HitR;Z;counts", 6000, -300, 300);
         //histograms
         for (unsigned int i = 0; i < 8; i++) {
             int disk = (i < 4) ? i - 4 : i - 3;
@@ -261,6 +370,7 @@ void ITclusterAnalyzer::beginJob()
         m_trackerLayoutHitsZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
         m_trackerLayoutHitsYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
 
+	//////////////////////////////////////////////////////
 	if (m_docoincidence) {
 		fs->file().cd("/");
 		td = fs->mkdir("2xCoincidences");
@@ -285,6 +395,7 @@ void ITclusterAnalyzer::beginJob()
 		m_trackerLayout2xYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
 	}
 
+	//////////////////////////////////////////////////////
 	if (m_docoincidence) {
 		fs->file().cd("/");
 		td = fs->mkdir("3xCoincidences");
@@ -359,6 +470,28 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
     unsigned int x3Counterreal[8][5];
     memset(x3Counterreal, 0, sizeof(x3Counterreal));
 
+    // Added by Joseph Cordero Mercado 
+    unsigned int hitX[8][5];
+    memset(hitX, 0, sizeof(hitX));
+    unsigned int hitY[8][5];
+    memset(hitY, 0, sizeof(hitY));
+    unsigned int hitZ[8][5];
+    memset(hitZ, 0, sizeof(hitZ));
+
+    unsigned int cluX[8][5];
+    memset(cluX, 0, sizeof(cluX));
+    unsigned int cluY[8][5];
+    memset(cluY, 0, sizeof(cluY));
+    unsigned int cluZ[8][5];
+    memset(cluZ, 0, sizeof(cluZ));
+
+    unsigned int cluSizeXCounter[8][5];
+    memset(cluSizeXCounter, 0, sizeof(cluSizeXCounter));
+    unsigned int cluSizeYCounter[8][5];
+    memset(cluSizeYCounter, 0, sizeof(cluSizeYCounter));
+    unsigned int cluAreaCounter[8][5];
+    memset(cluAreaCounter, 0, sizeof(cluAreaCounter));
+
     //-------------------------------------------------------------
     //loop over digis - COB 26.02.19
     //debugging...
@@ -407,7 +540,8 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
 
         //store the total number of digis in module
         m_nHits->Fill(DSVit->size());
-
+	HitNum = DSVit->size();
+ 
         //loop over the digis in each module
         for (edm::DetSet<PixelDigi>::const_iterator digit = DSVit->begin(); digit != DSVit->end(); digit++) {
 
@@ -427,6 +561,18 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
             //fill layout histograms
             m_trackerLayoutHitsZR->Fill(globalPosHit.z(), globalPosHit.perp());
             m_trackerLayoutHitsYX->Fill(globalPosHit.x(), globalPosHit.y());
+
+
+	    HitX      = globalPosHit.x();
+	    HitY      = globalPosHit.y();
+	    HitZ      = globalPosHit.z();
+	    HitPhi    = globalPosHit.phi();
+	    HitTheta  = globalPosHit.theta();
+
+	    //Added by Joseph Cordero 
+	    m_HitX->Fill(globalPosHit.x());
+	    m_HitY->Fill(globalPosHit.y());
+	    m_HitZ->Fill(globalPosHit.z());
 
         }
 
@@ -475,14 +621,28 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
 
         //fill the number of clusters for this module
         m_nClusters->Fill(DSVit->size());
+	CluNum = DSVit->size();
+        //m_nClustersV1->Fill(DSVit->size());
 
         //now loop the clusters for each detector
         for (edmNew::DetSet<SiPixelCluster>::const_iterator cluit = DSVit->begin(); cluit != DSVit->end(); cluit++) {
             //increment the counters
             nClu++;
             cluCounter[hist_id][ring_id]++;
+	
+            cluSizeXCounter[hist_id][ring_id] += cluit->sizeX();
+            cluSizeYCounter[hist_id][ring_id] += cluit->sizeY();
+            cluAreaCounter [hist_id][ring_id] += (cluit->sizeY())*(cluit->sizeX());
+	
 
-            // determine the position
+           // std::cout << "------------------------------------" << std::endl;
+           // std::cout << "------------------------------------" << std::endl;
+	   // std::cout << "------------CLUIT X:: " << cluit->sizeX() << std::endl;
+	   // std::cout << "------------CLUIT Y:: " << cluit->sizeY() << std::endl;
+	   // std::cout << "------------CLUIT SIZE:: " << cluit->size() << std::endl;
+           // std::cout << "------------------------------------" << std::endl;
+           // std::cout << "------------------------------------" << std::endl;
+	    // determine the position
             MeasurementPoint mpClu(cluit->x(), cluit->y());
             Local3DPoint localPosClu = geomDetUnit->topology().localPosition(mpClu);
             Global3DPoint globalPosClu = geomDetUnit->surface().toGlobal(localPosClu);
@@ -490,6 +650,55 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
             //fill TkLayout histos
             m_trackerLayoutClustersZR->Fill(globalPosClu.z(), globalPosClu.perp());
             m_trackerLayoutClustersYX->Fill(globalPosClu.x(), globalPosClu.y());
+
+
+	    //std::cout << "----------------------" << std::endl;
+	    //std::cout << "----------------------" << std::endl;
+	    //std::cout << "--------ColSpan:: " << cluit->colSpan() << " -- sizeY:: " << cluit->sizeY() << std::endl;
+	    //std::cout << "--------RowSpan:: " << cluit->rowSpan() << " -- sizeX:: " << cluit->sizeX() << std::endl;
+	    //std::cout << "----------------------" << std::endl;
+	    //std::cout << "----------------------" << std::endl;
+
+	    //     MERGE SECTION
+	    //
+	    
+	    //std::cout << "XX---  " << cluit << "  --XX" << std::endl;
+            edm::DetSetVector<PixelDigiSimLink>::const_iterator simLinkDSViter = findSimLinkDetSet(rawid);
+	    //std::cout << "Side: " << side << " Layer: " << layer << " Ring: " << ring << " rawID: " << rawid << std::endl;
+            //mergeClu = this->isMerged(simLinkDSViter, cluit, false);
+            std::set<unsigned int> mergeClu = this->getSimTrackId(simLinkDSViter, cluit, false);
+	    m_mergeClus->Fill(mergeClu.size());
+	    //if(simTrackId.size() > 1 ) 
+	    //	std::cout << "-- Merged Cluster\n";
+	    //std::cout<< std::endl;
+	    
+	    //
+	    //     MERGE SECTION
+
+	    CluX      = globalPosClu.x();
+	    CluY      = globalPosClu.y();
+	    CluZ      = globalPosClu.z();
+	    CluPhi    = globalPosClu.phi();
+	    CluTheta  = globalPosClu.theta();
+	    CluCharge = cluit->charge();
+	    CluArea   = (cluit->sizeY())*(cluit->sizeX());
+	    CluSize   = cluit->size();
+	    CluMerge  = mergeClu.size();
+
+	    m_CluX->Fill(CluX);
+	    m_CluY->Fill(CluY);
+	    m_CluZ->Fill(CluZ);
+	    m_CluTheta->Fill(CluTheta);
+	    m_CluPhi->Fill(CluPhi);
+
+	    outTreeCluster->Fill();
+
+
+	    //m_CluX->Fill(globalPosClu.x());
+	    //m_CluY->Fill(globalPosClu.y());
+	    //m_CluZ->Fill(globalPosClu.z());
+	    //m_CluPhi->Fill(globalPosClu.phi());
+	    //m_CluTheta->Fill(globalPosClu.theta());
 
             //std::cout << globalPosClu.x() << " " << globalPosClu.y() << std::endl;
             if (m_docoincidence) {
@@ -559,20 +768,44 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
             }
         } //end of cluster loop
     }     //end of module loop
-
+    
+    //std::cout << "------WASSA ------------------\n";
     //ok, now I know the number of clusters/hits per ring per disk and should fill the histogram once for this event
     for (unsigned int i = 0; i < 8; i++) {
         //loop the disks
         for (unsigned int j = 0; j < 5; j++) {
             //and the rings
             m_diskHistosCluster[i]->Fill(j + 1, cluCounter[i][j]);
-            m_diskHistosHits[i]->Fill(j + 1, hitCounter[i][j]);
+            m_diskHistosHits[i]   ->Fill(j + 1, hitCounter[i][j]);
             if (m_docoincidence) {
-                m_diskHistos2x[i]->Fill(j + 1, x2Counter[i][j]);
+                m_diskHistos2x[i]    ->Fill(j + 1, x2Counter[i][j]);
                 m_diskHistos2xreal[i]->Fill(j + 1, x2Counterreal[i][j]);
-                m_diskHistos3x[i]->Fill(j + 1, x3Counter[i][j]);
+                m_diskHistos3x[i]    ->Fill(j + 1, x3Counter[i][j]);
                 m_diskHistos3xreal[i]->Fill(j + 1, x3Counterreal[i][j]);
+
             }
+
+	    /*
+	    std::cout << "---- Area::" << cluAreaCounter[i][j] << "-- Average:: " << cluAreaCounter [i][j]/cluCounter[i][j]  << std::endl;
+	    std::cout << "---- SizeX::" <<  cluSizeXCounter[i][j] << "-- Average:: " << cluSizeXCounter [i][j]/cluCounter[i][j]  << std::endl;
+	    std::cout << "---- SizeY::" <<  cluSizeYCounter[i][j] << "-- Average:: " << cluSizeXCounter [i][j]/cluCounter[i][j]  << std::endl;
+	    */
+
+	    if(cluCounter[i][j] != 0){	
+		    /*
+		    std::cout << "---- Area::" << cluAreaCounter[i][j] << std::endl;
+		    std::cout << "---- SizeX::" <<  cluSizeXCounter[i][j] << std::endl;
+		    std::cout << "---- SizeY::" <<  cluSizeYCounter[i][j] << std::endl;
+		    */
+		    m_ClusterXsize[i]->Fill(j + 1, cluSizeXCounter[i][j]/cluCounter[i][j]);
+		    m_ClusterYsize[i]->Fill(j + 1, cluSizeYCounter[i][j]/cluCounter[i][j]);
+		    m_ClusterArea[i]->Fill(j + 1, cluAreaCounter [i][j]/cluCounter[i][j]);
+	    }
+	    //
+	    //m_ClusterXsize[i]->Fill(j + 1, cluSizeXCounter[i][j]/cluCounter[i][j] );
+	    //m_ClusterYsize[i]->Fill(j + 1, cluSizeYCounter[i][j]/cluCounter[i][j]  );
+	    //m_ClusterYsize[i]->Fill(j + 1, cluAreaCounter [i][j]/cluCounter[i][j]  );
+	
         }
     }
     m_nevents++;
@@ -581,6 +814,9 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
 // ------------ method called once each job just after ending the event loop  ------------
 void ITclusterAnalyzer::endJob()
 {
+    outFileCluster->Write();
+    outFileCluster->Close();
+
     std::cout << "IT cluster Analyzer processed " << m_nevents << " events!" << std::endl;
     if (m_docoincidence) {
         std::cout << "IT cluster Analyzer found " << m_fake2xcoincidences / (double)m_total2xcoincidences * 100 << "\% fake double coincidences." << std::endl;
@@ -802,6 +1038,46 @@ edm::DetSetVector<PixelDigiSimLink>::const_iterator ITclusterAnalyzer::findSimLi
     ////basic template
     edm::DetSetVector<PixelDigiSimLink>::const_iterator simLinkDS = simlinks->find(thedetid);
     return simLinkDS;
+}
+
+bool ITclusterAnalyzer::isMerged(edm::DetSetVector<PixelDigiSimLink>::const_iterator simLinkDSViter, edmNew::DetSet<SiPixelCluster>::const_iterator cluster, bool print)
+{
+    int size = cluster->size();
+    //std::vector<unsigned int> simTrackIds;
+    std::set<unsigned int> simTrackIds;
+
+    for (int i = 0; i < size; i++) {
+
+        SiPixelCluster::Pixel pix = cluster->pixel(i);
+        unsigned int clusterChannel = PixelDigi::pixelToChannel(pix.x, pix.y);
+
+        if (simLinkDSViter != simlinks->end()) {
+            for (edm::DetSet<PixelDigiSimLink>::const_iterator it = simLinkDSViter->data.begin(); it != simLinkDSViter->data.end(); it++) {
+                if (clusterChannel == it->channel()) {
+                    //simTrackIds.push_back(it->SimTrackId());
+                    simTrackIds.insert(it->SimTrackId());
+                    if (print)
+                        std::cout << "---- "
+				  << " Pos (x,y): "        << pix.x << " , " << pix.y 
+				  << " Cluster size: "     << size 
+				  << " Cluster Channel: "  << clusterChannel 
+				  << " SimTrack Channel: " << it->channel()
+				  << " SimTrack ID: "      << it->SimTrackId() 
+				  << std::endl;
+                }
+            }
+        }
+    }
+
+    //std::cout << "---------------------\n";
+    //for(std::set<unsigned int>::iterator i = simTrackIds.begin() ;i != simTrackIds.end() ; i++)
+    //	std::cout << " Tracks " << *i << std::endl;
+    if(simTrackIds.size() != 1){
+      //std::cout << "WARNING: have more than 1 simTrackId for this cluster! " << std::endl;
+      return true;
+    }
+    //return simTrackIds;
+    return false;
 }
 
 std::set<unsigned int> ITclusterAnalyzer::getSimTrackId(edm::DetSetVector<PixelDigiSimLink>::const_iterator simLinkDSViter, edmNew::DetSet<SiPixelCluster>::const_iterator cluster, bool print)
