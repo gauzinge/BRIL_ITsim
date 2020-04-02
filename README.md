@@ -237,3 +237,15 @@ to process all step3_XXXXX files for PU 10 and generate a single summary file fo
 
 
 if you have any bug reports or questions, contact me!
+
+### by Joseph Cordero
+
+Added
+  * run.MultAnalysis.sh = Added this very simple script to run multiple analysis. [*]
+  * run.MultSum.sh = similar to MultAnalysis. [*]
+ 
+Modified
+  * ITclusterAnalyzer/python/ITclusterAnalyzer_cfg.py = to set the input and output paths
+  * BRIL_ITsim/ITclusterAnalyzer/plugins/ITclusterAnalyzer.cc = Most modified. Added trees to store the variables in order to get event by event relations between all variables.
+
+
