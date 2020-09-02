@@ -54,6 +54,7 @@ Implementation:
 #include "FWCore/ServiceRegistry/interface/Service.h"
 
 #include <TH2F.h>
+#include <TTree.h>
 
 //
 // class declaration
@@ -212,6 +213,24 @@ private:
     uint32_t m_total3xcoincidences_TFPX;
     uint32_t m_fake3xcoincidences;
     uint32_t m_fake3xcoincidences_TFPX;
+
+    // --
+    // Variables for cluster parameterization studies
+    bool m_storeClusterTree;
+    TFile *outFileCluster;
+    TTree *outTreeCluster;
+    double CluX;
+    double CluY;
+    double CluZ;
+    double CluArea;
+    double CluSize;
+    double CluTheta;
+    double CluPhi;
+    double CluCharge;
+    unsigned int CluNum;
+    unsigned int CluMerge;
+    unsigned int mergeClu;
+
 };
 
 //
@@ -234,7 +253,8 @@ ITclusterAnalyzer::ITclusterAnalyzer(const edm::ParameterSet& iConfig)
         , m_docoincidence(iConfig.getUntrackedParameter<bool>("docoincidence"))
         , m_dx(iConfig.getParameter<double>("dx_cut"))
         , m_dy(iConfig.getParameter<double>("dy_cut"))
-        , m_dz(iConfig.getParameter<double>("dz_cut")) {
+        , m_dz(iConfig.getParameter<double>("dz_cut"))
+        , m_storeClusterTree(iConfig.getUntrackedParameter<bool>("storeClusterTree")) {
     //now do what ever initialization is needed
     m_nevents = 0;
     m_total2xcoincidences = 0;
@@ -488,6 +508,27 @@ void ITclusterAnalyzer::beginJob() {
 
     }
 
+    // ---------------------------------------------------
+
+    if (m_storeClusterTree) {
+
+        outFileCluster = new TFile("Cluster.root","RECREATE");
+        outFileCluster->cd();
+        outTreeCluster = new TTree("cluster_tree","cluster");
+
+        outTreeCluster->Branch("CluX", &CluX);
+        outTreeCluster->Branch("CluY", &CluY);
+        outTreeCluster->Branch("CluZ", &CluZ);
+        outTreeCluster->Branch("CluTheta", &CluTheta);
+        outTreeCluster->Branch("CluPhi", &CluPhi);
+        outTreeCluster->Branch("CluCharge", &CluCharge);
+        outTreeCluster->Branch("CluArea", &CluArea);
+        outTreeCluster->Branch("CluSize", &CluSize);
+        outTreeCluster->Branch("CluMerge", &CluMerge);
+        outTreeCluster->Branch("CluNum", &CluNum);
+
+    }
+
 }
 
 // ------------ method called for each event  ------------
@@ -736,6 +777,25 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
                 //fill TkLayout histos
                 m_trackerLayoutClustersZR->Fill(globalPosClu.z(), globalPosClu.perp());
                 m_trackerLayoutClustersYX->Fill(globalPosClu.x(), globalPosClu.y());
+
+                //for cluster parameterization studies...
+                if (m_storeClusterTree) {
+
+                    edm::DetSetVector<PixelDigiSimLink>::const_iterator simLinkDSViter = findSimLinkDetSet(rawid);
+                    std::set<unsigned int> mergeClu = this->getSimTrackId(simLinkDSViter, cluit, false);
+
+                    CluX = globalPosClu.x();
+	            CluY = globalPosClu.y();
+	            CluZ = globalPosClu.z();
+	            CluPhi = globalPosClu.phi();
+	            CluTheta = globalPosClu.theta();
+	            CluCharge = cluit->charge();
+	            CluArea = (cluit->sizeY())*(cluit->sizeX());
+	            CluSize = cluit->size();
+	            CluMerge = mergeClu.size();
+
+                    outTreeCluster->Fill();
+                 }
 
                 //std::cout << globalPosClu.x() << " " << globalPosClu.y() << std::endl;
                 if (m_docoincidence) {
@@ -1013,6 +1073,12 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
 
 // ------------ method called once each job just after ending the event loop  ------------
 void ITclusterAnalyzer::endJob() {
+
+    if (m_storeClusterTree) {
+        outFileCluster->Write("",TObject::kOverwrite);
+        outFileCluster->Close();
+    }
+
     std::cout << "IT cluster Analyzer processed " << m_nevents << " events!" << std::endl;
     if (m_docoincidence) {
         std::cout << "IT cluster Analyzer found " << m_fake2xcoincidences / (double)m_total2xcoincidences * 100 

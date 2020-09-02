@@ -3,7 +3,9 @@
 eval $(scramv1 runtime -sh) || echo "The command 'cmsenv' failed!"
 
 input="full_RelValNuGun_Files_PU10.txt"
-PUIN=$(echo ${input} | cut -d'.' -f 1 | cut -d'_' -f 3 | cut --complement -c 1,2)
+PUIN=$1
+#PUIN=$(echo ${input} | cut -d'.' -f 1 | cut -d'_' -f 3 | cut --complement -c 1,2)
+outputTree="/afs/cern.ch/work/c/cbarrera/private/BRIL/clusterData"
 
 function runAnalysis() {
   echo '############################################'
@@ -18,6 +20,7 @@ function runAnalysis() {
                 inputFiles=file:${filename} \
                 outputFile=temp.root \
                 tag=${TAG}
+    mv Cluster.root ${outputTree}/Cluster_${PUIN}_${TAG}.root
     TAG=`expr $TAG + 1`
   done < "${input}"
 }
@@ -31,4 +34,16 @@ for rootfile in ${PWD}/temp_?.root; do
 done
 echo $command
 ${command}
+
+echo "Cleaning up temp files..."
+rm temp_*.root
+
+echo "Merging trees and cleaning them up..."
+command2="hadd -f ${outputTree}/Cluster_${PUIN}.root"
+for treefile in ${outputTree}/Cluster_${PUIN}_?.root; do
+  command2+=" ${treefile}"
+done
+echo $command2
+${command2}
+rm ${outputTree}/Cluster_${PUIN}_?.root
 
