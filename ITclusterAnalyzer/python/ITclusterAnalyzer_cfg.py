@@ -10,10 +10,15 @@ options = VarParsing.VarParsing('analysis')
 
 # input file(s)
 # options.inputFiles = 'file:/eos/user/g/gauzinge/PUdata/step3_pixel_PU_1.1.root'
+<<<<<<< HEAD
 # options.inputFiles = 'file:/afs/cern.ch/user/g/gauzinge/BIBSim/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/step3_pixel_PU_100.0.0TkOnly.root'
 options.inputFiles = 'file:/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/bib_simulations/halo/BeamHaloReco.0.root'
 
 # output file
+=======
+options.inputFiles = 'file:/afs/cern.ch/user/g/gauzinge/BIBSim/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/BeamHaloReco.0.root'
+# options.inputFiles = 'file:/afs/cern.ch/work/c/cbarrera/private/BRIL/outputDir/step3_pixel_PU_20.0.0.root'
+>>>>>>> 95ac1e4b4842e9296c08643c8db496dd627c60b5
 options.outputFile='summary.root'
 
 # proccess this many events from input (-1 means all events)

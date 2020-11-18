@@ -25,9 +25,8 @@ STAGED=$4
 NTHREADS=10
 
 FILE=file:
-#PUPATH=/afs/cern.ch/work/g/gauzinge/public/minBiasFiles
+PUPATH=/afs/cern.ch/work/g/gauzinge/public/minBiasFiles
 #PUPATH=/afs/cern.ch/work/g/gauzinge/public
-PUPATH=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/pkicsiny_minbias
 
 #OUTDIR=/eos/user/g/gauzinge/PUdata
 #OUTDIR=.
@@ -36,8 +35,7 @@ PUPATH=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITs
 #OUTDIR=/eos/user/c/cbarrera/BRIL_ITsim_PUsamples
 #
 #OUTDIR=/afs/cern.ch/work/c/cbarrera/private/BRIL/outputDir
-#OUTDIR=/afs/cern.ch/user/g/gauzinge/BIBSim/CMSSW_11_2_0_pre6/src/BRIL_ITsim
-OUTDIR=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/pkicsiny_pileup
+OUTDIR=/afs/cern.ch/user/g/gauzinge/BIBSim/CMSSW_11_2_0_pre6/src/BRIL_ITsim
 
 #additional variables for mixing module
 BUNCHSPACING=25

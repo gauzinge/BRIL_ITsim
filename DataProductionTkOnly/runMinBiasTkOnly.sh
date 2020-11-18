@@ -8,8 +8,7 @@ JOBID=$2
 ##CHANGE ME ACCORDING TO YOUR NEEDS
 ################################################################################
 NTHREADS=10
-OUTDIR=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/pkicsiny_minbias
-#OUTDIR=/afs/cern.ch/work/g/gauzinge/public/
+OUTDIR=/afs/cern.ch/work/g/gauzinge/public/minBiasFiles
 ################################################################################
 ################################################################################
 ################################################################################
