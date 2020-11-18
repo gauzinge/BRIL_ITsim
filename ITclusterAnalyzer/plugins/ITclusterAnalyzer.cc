@@ -123,6 +123,10 @@ private:
     //array of TH2F for clusters per disk per ring
     TH2F* m_diskHistosCluster[8];
     TH2F* m_diskHistosCluster_TFPX[16];
+
+    //2D array of TH2F for clusters per disc per ring per module
+    TH2F* m_diskHistosCluster2D[8][5]; // 8 discs, 5 rings in each disc
+
     //array of TH2F for hits per disk per ring
     TH2F* m_diskHistosHits[8];
     TH2F* m_diskHistosHits_TFPX[16];
@@ -284,7 +288,10 @@ ITclusterAnalyzer::~ITclusterAnalyzer() {
 void ITclusterAnalyzer::beginJob() {
 
     edm::Service<TFileService> fs;
-
+    
+    /*
+    * TEPX
+    */
     fs->file().cd("/");
     TFileDirectory td = fs->mkdir("TEPX");
 
@@ -303,68 +310,100 @@ void ITclusterAnalyzer::beginJob() {
     m_nClusters = td.make<TH1F>("Number of Clusters per module per event", "# of Clusters;# of Clusters; Occurence", 500, 0, 500);
     m_nHits = td.make<TH1F>("Number of Hits per module per event", "# of Hits; # of Hits; Occurrences", 500, 0, 500);
 
+    /*
+    * TEPX histograms for clusters
+    */
     fs->file().cd("/");
     td = fs->mkdir("TEPX/Clusters");
 
-    //now lets create the histograms
     for (unsigned int i = 0; i < 8; i++) {
+	
+	// disc ID if [-4, 1] for -Z side and [1, 4] for +Z side
         int disk = (i < 4) ? i - 4 : i - 3;
         std::stringstream histoname;
         histoname << "Number of clusters for Disk " << disk << ";Ring;# of Clusters per event";
         std::stringstream histotitle;
         histotitle << "Number of clusters for Disk " << disk;
+
         //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
         m_diskHistosCluster[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
+
+	//TH2F 2D array
+	for (unsigned int r = 0; r < 5; r++) {
+		std::stringstream histoname;	
+		histoname << " Number of clusters for Disc " << disk << " and Ring " << r+1 << ";Module;# of Clusters per event";
+	        std::stringstream histotitle;
+		histotitle << "Number of clusters for Disc " << disk << " and Ring " << r+1;
+        	
+		//name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
+		m_diskHistosCluster2D[i][r] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 48, .5, 48.5, m_maxBin, 0, m_maxBin); // max 48 modules in a ring
+	}
     }
     m_trackerLayoutClustersZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
     m_trackerLayoutClustersYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
-
+    
+    /*
+    * TEPX histograms for hits
+    */    
     fs->file().cd("/");
     td = fs->mkdir("TEPX/Hits");
 
-    //histograms
     for (unsigned int i = 0; i < 8; i++) {
-        int disk = (i < 4) ? i - 4 : i - 3;
+
+        // disc ID if [-4, 1] for -Z side and [1, 4] for +Z side     
+    	int disk = (i < 4) ? i - 4 : i - 3;
         std::stringstream histoname;
         histoname << "Number of hits for Disk " << disk << ";Ring;# of Hits per event";
         std::stringstream histotitle;
         histotitle << "Number of hits for Disk " << disk;
+
+        //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
         m_diskHistosHits[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
     }
-
     m_trackerLayoutHitsZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
     m_trackerLayoutHitsYX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
 
+    /*
+    * TEPX histogramds for 2x coincidences
+    */
     if (m_docoincidence) {
         fs->file().cd("/");
         td = fs->mkdir("TEPX/2xCoincidences");
-        //now lets create the histograms
-        for (unsigned int i = 0; i < 8; i++) {
-            int disk = (i < 4) ? i - 4 : i - 3;
+        
+	for (unsigned int i = 0; i < 8; i++) {
+            
+  	    // disc ID if [-4, 1] for -Z side and [1, 4] for +Z side     
+       	    int disk = (i < 4) ? i - 4 : i - 3;
             std::stringstream histoname;
             histoname << "Number of 2x Coincidences for Disk " << disk << ";Ring;# of coincidences per event";
             std::stringstream histotitle;
             histotitle << "Number of 2x Coincidences for Disk " << disk;
-            //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
+        
+	    //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
             m_diskHistos2x[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
 
             std::stringstream histonamereal;
             histonamereal << "Number of real 2x Coincidences for Disk " << disk << ";Ring;# of real coincidences per event";
             std::stringstream histotitlereal;
             histotitlereal << "Number of real 2x Coincidences for Disk " << disk;
-            //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
+           
+	    //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
             m_diskHistos2xreal[i] = td.make<TH2F>(histotitlereal.str().c_str(), histonamereal.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
 
             std::stringstream histonameInR;
             histonameInR << "Number of 2x Coincidences in R for Disk " << disk << ";Ring;# of coincidences per event";
             std::stringstream histotitleInR;
             histotitleInR << "Number of 2x Coincidences in R for Disk " << disk;
-            m_diskHistos2xInR[i] = td.make<TH2F>(histotitleInR.str().c_str(), histonameInR.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
+           
+            //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
+	    m_diskHistos2xInR[i] = td.make<TH2F>(histotitleInR.str().c_str(), histonameInR.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
 
             std::stringstream histonamerealInR;
             histonamerealInR << "Number of real 2x Coincidences in R for Disk " << disk << ";Ring;# of coincidences per event";
             std::stringstream histotitlerealInR;
             histotitlerealInR << "Number of real 2x Coincidences in R for Disk " << disk;
+
+            //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
             m_diskHistos2xrealInR[i] = td.make<TH2F>(histotitlerealInR.str().c_str(), histonamerealInR.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
         }
         m_trackerLayout2xZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
@@ -373,16 +412,22 @@ void ITclusterAnalyzer::beginJob() {
         m_trackerLayout2xYX_InR = td.make<TH2F>("XVsY_InR", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
     }
 
+    /*
+    * TEPX histograms for 3x coincidence 
+    */
     if (m_docoincidence) {
         fs->file().cd("/");
         td = fs->mkdir("TEPX/3xCoincidences");
-        //now lets create the histograms
+    
         for (unsigned int i = 0; i < 8; i++) {
-            int disk = (i < 4) ? i - 4 : i - 3;
+            
+	    // disc ID if [-4, 1] for -Z side and [1, 4] for +Z side  	
+  	    int disk = (i < 4) ? i - 4 : i - 3;
             std::stringstream histoname;
             histoname << "Number of 3x Coincidences for Disk " << disk << ";Ring;# of coincidences per event";
             std::stringstream histotitle;
             histotitle << "Number of 3x Coincidences for Disk " << disk;
+    
             //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
             m_diskHistos3x[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
 
@@ -390,7 +435,8 @@ void ITclusterAnalyzer::beginJob() {
             histonamereal << "Number of real 3x Coincidences for Disk " << disk << ";Ring;# of real coincidences per event";
             std::stringstream histotitlereal;
             histotitlereal << "Number of real 3x Coincidences for Disk " << disk;
-            //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
+     
+           //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
             m_diskHistos3xreal[i] = td.make<TH2F>(histotitlereal.str().c_str(), histonamereal.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
         }
         m_trackerLayout3xZR = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
@@ -399,6 +445,9 @@ void ITclusterAnalyzer::beginJob() {
 
     // ---------------------------------------------------
 
+    /*
+    * TFPX
+    */
     fs->file().cd("/");
     td = fs->mkdir("TFPX");
 
@@ -415,97 +464,132 @@ void ITclusterAnalyzer::beginJob() {
 
     fs->file().cd("/");
     td = fs->mkdir("TFPX/perModule");
-    m_nHits_TFPX = td.make<TH1F>("Number of Hits per module per event", "# of Hits; # of Hits; Occurrences", 500, 0, 500);
     m_nClusters_TFPX = td.make<TH1F>("Number of Clusters per module per event", "# of Clusters;# of Clusters; Occurence", 500, 0, 500);
+    m_nHits_TFPX = td.make<TH1F>("Number of Hits per module per event", "# of Hits; # of Hits; Occurrences", 500, 0, 500);
 
-    fs->file().cd("/");
-    td = fs->mkdir("TFPX/Hits");
 
-    for (unsigned int i = 0; i < 16; i++) {
-        int disk = (i < 8) ? i - 8 : i - 7;
-        std::stringstream histoname;
-        histoname << "Number of hits for Disk " << disk << ";Ring;# of Hits per event";
-        std::stringstream histotitle;
-        histotitle << "Number of hits for Disk " << disk;
-        m_diskHistosHits_TFPX[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
-    }
-
-    m_trackerLayoutHitsZR_TFPX = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
-    m_trackerLayoutHitsYX_TFPX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
-
+    /*
+    * TFPX histograms for clusters
+    */
     fs->file().cd("/");
     td = fs->mkdir("TFPX/Clusters");
 
     for (unsigned int i = 0; i < 16; i++) {
+
+        //disc ID if [-8, 1] for -Z side and [1, 8] for +Z side 
         int disk = (i < 8) ? i - 8 : i - 7;
         std::stringstream histoname;
         histoname << "Number of clusters for Disk " << disk << ";Ring;# of Clusters per event";
         std::stringstream histotitle;
         histotitle << "Number of clusters for Disk " << disk;
+
+        //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
         m_diskHistosCluster_TFPX[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
     }
-
     m_trackerLayoutClustersZR_TFPX = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
     m_trackerLayoutClustersYX_TFPX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
 
+    /*
+    * TFPX histograms for hits
+    */
+    fs->file().cd("/");
+    td = fs->mkdir("TFPX/Hits");
+
+    for (unsigned int i = 0; i < 16; i++) {
+
+        // disc ID if [-8, 1] for -Z side and [1, 8] for +Z side 
+        int disk = (i < 8) ? i - 8 : i - 7;
+        std::stringstream histoname;
+        histoname << "Number of hits for Disk " << disk << ";Ring;# of Hits per event";
+        std::stringstream histotitle;
+        histotitle << "Number of hits for Disk " << disk;
+
+	//name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh        
+        m_diskHistosHits_TFPX[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
+    }
+    m_trackerLayoutHitsZR_TFPX = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
+    m_trackerLayoutHitsYX_TFPX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+
+    /*
+    * TFPX histogramds for 2x coincidences
+    */
     if (m_docoincidence) {
 
         fs->file().cd("/");
         td = fs->mkdir("TFPX/2xCoincidences");
 
         for (unsigned int i = 0; i < 16; i++) {
+      
+            // disc ID if [-8, 1] for -Z side and [1, 8] for +Z side
             int disk = (i < 8) ? i - 8 : i - 7;
             std::stringstream histoname;
             histoname << "Number of 2x Coincidences for Disk " << disk << ";Ring;# of coincidences per event";
             std::stringstream histotitle;
             histotitle << "Number of 2x Coincidences for Disk " << disk;
-            m_diskHistos2x_TFPX[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
+            
+	    //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
+	    m_diskHistos2x_TFPX[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
 
             std::stringstream histonamereal;
             histonamereal << "Number of real 2x Coincidences for Disk " << disk << ";Ring;# of real coincidences per event";
             std::stringstream histotitlereal;
             histotitlereal << "Number of real 2x Coincidences for Disk " << disk;
+
+	    //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
             m_diskHistos2xreal_TFPX[i] = td.make<TH2F>(histotitlereal.str().c_str(), histonamereal.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
 
             std::stringstream histonameInR;
             histonameInR << "Number of 2x Coincidences in R for Disk " << disk << ";Ring;# of coincidences per event";
             std::stringstream histotitleInR;
             histotitleInR << "Number of 2x Coincidences in R for Disk " << disk;
+
+	    //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
             m_diskHistos2xInR_TFPX[i] = td.make<TH2F>(histotitleInR.str().c_str(), histonameInR.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
 
             std::stringstream histonamerealInR;
             histonamerealInR << "Number of real 2x Coincidences in R for Disk " << disk << ";Ring;# of coincidences per event";
             std::stringstream histotitlerealInR;
             histotitlerealInR << "Number of real 2x Coincidences in R for Disk " << disk;
+
+	    //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
             m_diskHistos2xrealInR_TFPX[i] = td.make<TH2F>(histotitlerealInR.str().c_str(), histonamerealInR.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
         }
         m_trackerLayout2xZR_TFPX = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
         m_trackerLayout2xYX_TFPX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);           
-
         m_trackerLayout2xZR_InR_TFPX = td.make<TH2F>("RVsZ_InR", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
         m_trackerLayout2xYX_InR_TFPX = td.make<TH2F>("XVsY_InR", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+    }
+
+    /*
+    * TFPX histogramds for 3x coincidences
+    */
+    if (m_docoincidence){
 
         fs->file().cd("/");
         td = fs->mkdir("TFPX/3xCoincidences");
 
         for (unsigned int i = 0; i < 16; i++) {
+
+            // disc ID if [-8, 1] for -Z side and [1, 8] for +Z side 
             int disk = (i < 8) ? i - 8 : i - 7;
             std::stringstream histoname;
             histoname << "Number of 3x Coincidences for Disk " << disk << ";Ring;# of coincidences per event";
             std::stringstream histotitle;
             histotitle << "Number of 3x Coincidences for Disk " << disk;
+	    
+    	    //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
             m_diskHistos3x_TFPX[i] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
 
             std::stringstream histonamereal;
             histonamereal << "Number of real 3x Coincidences for Disk " << disk << ";Ring;# of real coincidences per event";
             std::stringstream histotitlereal;
             histotitlereal << "Number of real 3x Coincidences for Disk " << disk;
+
+	    //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
             m_diskHistos3xreal_TFPX[i] = td.make<TH2F>(histotitlereal.str().c_str(), histonamereal.str().c_str(), 5, .5, 5.5, m_maxBin, 0, m_maxBin);
         }
-
         m_trackerLayout3xZR_TFPX = td.make<TH2F>("RVsZ", "R vs. z position", 6000, -300.0, 300.0, 600, 0.0, 30.0);
         m_trackerLayout3xYX_TFPX = td.make<TH2F>("XVsY", "x vs. y position", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
-
     }
 
     // ---------------------------------------------------
@@ -526,9 +610,7 @@ void ITclusterAnalyzer::beginJob() {
         outTreeCluster->Branch("CluSize", &CluSize);
         outTreeCluster->Branch("CluMerge", &CluMerge);
         outTreeCluster->Branch("CluNum", &CluNum);
-
     }
-
 }
 
 // ------------ method called for each event  ------------
@@ -556,23 +638,33 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
 
     //get the pointers to geometry, topology and clusters
     tTopo = tTopoHandle.product();
+ 
     //const TrackerGeometry* tkGeom = &(*geomHandle);
     tkGeom = tgeomHandle.product();
     clusters = tclusters.product();
     simlinks = tsimlinks.product();
     digis = tdigis.product();  //pointer to digis - COB 26.02.19
 
-    //a 2D counter array to count the number of clusters per disk and per ring
+    /*
+    * initialize 2D arrays for counting per disc per ring
+    */
+    //number of clusters
     unsigned int cluCounter[8][5];
     memset(cluCounter, 0, sizeof(cluCounter));
     unsigned int cluCounter_TFPX[16][4];
     memset(cluCounter_TFPX, 0, sizeof(cluCounter_TFPX));
-    //counter array for hits per disk and per ring
+
+    //number of clusters per ring per module
+    unsigned int cluCounter_rm[8][5][48];
+    memset(cluCounter_rm, 0, sizeof(cluCounter_rm));
+
+    //number of hits
     unsigned int hitCounter[8][5];
     memset(hitCounter, 0, sizeof(hitCounter));
     unsigned int hitCounter_TFPX[16][4];
     memset(hitCounter_TFPX, 0, sizeof(hitCounter_TFPX));
-    //counter for 2x coincidences
+
+    //number of 2x coincidences
     unsigned int x2Counter[8][5];
     memset(x2Counter, 0, sizeof(x2Counter));
     unsigned int x2Counter_TFPX[16][4];
@@ -589,7 +681,8 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
     memset(x2CounterrealInR, 0, sizeof(x2CounterrealInR));
     unsigned int x2CounterrealInR_TFPX[16][4];
     memset(x2CounterrealInR_TFPX, 0, sizeof(x2CounterrealInR_TFPX));
-    //counter for 3x coincidences
+
+    //number of 3x coincidences
     unsigned int x3Counter[8][5];
     memset(x3Counter, 0, sizeof(x3Counter));
     unsigned int x3Counter_TFPX[16][4];
@@ -718,11 +811,15 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
         }    
 
     }
+
     //-------------------------------------------------------------
 
-    //loop the modules in the cluster collection
+    /*
+    * loop over the modules in the cluster collection (both TEPX and TFPX)
+    */
     for (typename edmNew::DetSetVector<SiPixelCluster>::const_iterator DSVit = clusters->begin(); DSVit != clusters->end(); DSVit++) {
-        //get the detid
+        
+	//get the detid
         unsigned int rawid(DSVit->detId());
         DetId detId(rawid);
 
@@ -738,36 +835,53 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
         unsigned int side = (tTopo->pxfSide(detId));  // values are 1 and 2 for -+Z
         unsigned int layer = (tTopo->pxfDisk(detId)); //values are 1 to 12 for disks TFPX1 to TFPX 8  and TEPX1 to TEPX 4
         unsigned int ring = (tTopo->pxfBlade(detId));
+	unsigned int module = (tTopo->pxfModule(detId));
 
-        if (layer > 8) { // TEPX modules
+	/*
+	* a TEPX module
+ 	*/
+        if (layer > 8) {
 
             //the index in my histogram map
             int hist_id = -1;
             unsigned int ring_id = ring - 1;
+            unsigned int module_id = module - 1;
 
+	    //this is a TEPX hit on side 1 (-Z)
             if (side == 1) {
-                //this is a TEPX- hit on side1
-                hist_id = layer - 9;
-            } else if (side == 2) {
-                //this is a TEPX+ hit on side 2
-                hist_id = 4 + layer - 9;
+                hist_id = layer - 9; // goes from 0 to 3
+            }
+            
+	    //this is a TEPX hit on side 2 (+Z)
+	    else if (side == 2) {
+                hist_id = 4 + layer - 9; // goes from 4 to 7
             }
 
             // Get the geomdet
             const GeomDetUnit* geomDetUnit(tkGeom->idToDetUnit(detId));
             if (!geomDetUnit)
                 continue;
+		
+	    //debug
+	    //if (module > 47){
+	    //	std::cout << "This is side " << side << ", disc " << layer << ", ring " << ring << ", module " << module << std::endl;
+	    //}
 
+	    // counter for number of clusters in current module (in for loop goes from 0 to DSVit->size() - 1)
             unsigned int nClu = 0;
 
             //fill the number of clusters for this module
-            m_nClusters->Fill(DSVit->size());
+	    m_nClusters->Fill(DSVit->size());
 
-            //now loop the clusters for each detector
+            /*
+            * loop over the clusters in TEPX module
+ 	    */
             for (edmNew::DetSet<SiPixelCluster>::const_iterator cluit = DSVit->begin(); cluit != DSVit->end(); cluit++) {
-                //increment the counters
+                
+		//increment the counters
                 nClu++;
                 cluCounter[hist_id][ring_id]++;
+		cluCounter_rm[hist_id][ring_id][module_id]++;
 
                 // determine the position
                 MeasurementPoint mpClu(cluit->x(), cluit->y());
@@ -900,21 +1014,27 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
                         m_trackerLayout2xZR_InR->Fill(globalPosClu.z(), globalPosClu.perp());
                         m_trackerLayout2xYX_InR->Fill(globalPosClu.x(), globalPosClu.y());
                     }
-                    //----------------------------------------- 
-                }       
-            }  //end of cluster loop
+                } // end of coincidence if      
+            } // end of clusters loop
+        } // end of single TEPX module if
 
-        } else { // TFPX modules
+	/*
+ 	* a TFPX module
+ 	*/ 
+	else {
 
             //the index in my histogram map
             int hist_id = -1;
             unsigned int ring_id = ring - 1;
+
+	    //this is a TFPX hit on side 1 (-Z)
             if (side == 1) {
-                //this is a TFPX- hit on side 1
-                hist_id = layer - 1;
-            } else if (side == 2) {
-                //this is a TFPX+ hit on side 2
-                hist_id = 8 + layer - 1;
+                hist_id = layer - 1; // goes from 0 to 7 
+            } 
+
+	    //this is a TFPX hit on side 2 (+Z)
+	    else if (side == 2) {
+                hist_id = 8 + layer - 1; // goes from 8 to 15
             }
 
             // Get the geomdet
@@ -922,14 +1042,18 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
             if (!geomDetUnit)
                 continue;
 
-            unsigned int nClu = 0;
+            // counter for number of clusters (in for loop goes from 0 to DSVit->size() - 1)
+	    unsigned int nClu = 0;
 
             //fill the number of clusters for this module
             m_nClusters_TFPX->Fill(DSVit->size());   
 
-            //now loop the clusters for each detector
+            /*
+            * loop over the clusters in TFPX module
+            */
             for (edmNew::DetSet<SiPixelCluster>::const_iterator cluit = DSVit->begin(); cluit != DSVit->end(); cluit++) {
-                //increment the counters
+                
+		//increment the counters
                 nClu++;
                 cluCounter_TFPX[hist_id][ring_id]++;
 
@@ -1023,22 +1147,27 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
                         m_trackerLayout2xZR_InR_TFPX->Fill(globalPosClu.z(), globalPosClu.perp());
                         m_trackerLayout2xYX_InR_TFPX->Fill(globalPosClu.x(), globalPosClu.y());       
                     }
-                    //-----------------------------------------
-                }
-
-            }      
-
-        }
+                } // end of coincidence if
+            } // end of clusters loop
+        } // end of single TFPX module if
 
     } //end of module loop
 
     //ok, now I know the number of clusters/hits per ring per disk and should fill the histogram once for this event
-    for (unsigned int i = 0; i < 8; i++) {  // TEPX
-        //loop the disks
+    
+    // TEPX
+    //loop over discs
+    for (unsigned int i = 0; i < 8; i++) {
+
+        //loop over rings
         for (unsigned int j = 0; j < 5; j++) {
-            //and the rings
             m_diskHistosCluster[i]->Fill(j + 1, cluCounter[i][j]);
             m_diskHistosHits[i]->Fill(j + 1, hitCounter[i][j]);
+
+	    //loop over modules
+	    for (unsigned int k = 0; k < 48; k++) {
+	    	m_diskHistosCluster2D[i][j]->Fill(k + 1, cluCounter_rm[i][j][k]);
+	    } 
             if (m_docoincidence) {
                 m_diskHistos2x[i]->Fill(j + 1, x2Counter[i][j]);
                 m_diskHistos2xreal[i]->Fill(j + 1, x2Counterreal[i][j]);
@@ -1050,10 +1179,12 @@ void ITclusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
         }
     }
 
-    for (unsigned int i = 0; i < 16; i++) {  // TFPX
-        //loop the disks
+    // TFPX
+    //loop over discs
+    for (unsigned int i = 0; i < 16; i++) {
+
+        //loop over rings
         for (unsigned int j = 0; j < 4; j++) {
-            //and the rings
             m_diskHistosCluster_TFPX[i]->Fill(j + 1, cluCounter_TFPX[i][j]);
             m_diskHistosHits_TFPX[i]->Fill(j + 1, hitCounter_TFPX[i][j]);
             if (m_docoincidence) {

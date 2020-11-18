@@ -14,13 +14,14 @@ options = VarParsing ('analysis')
 # Here we have defined our own two VarParsing options 
 # add a list of strings for events to process
 options.register ('nEvents',
-                                 # 1000,
-                                 -1,
+                                 10,
+                                 #-1,
                                  VarParsing.multiplicity.singleton,
                                  VarParsing.varType.int,
                   "The number of events to generate: 10")
 options.register ('inputFile',
-                  'file:/afs/cern.ch/user/g/gauzinge/BIBSim/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/BeamHalo.0.root',
+		  'file:/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/BeamHalo.0.root',
+                  #'file:/afs/cern.ch/user/g//BIBSim/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/BeamHalo.0.root',
                                  VarParsing.multiplicity.singleton,
                                  VarParsing.varType.string,
                   "The input file")
@@ -35,7 +36,8 @@ options.register ('jobId',
                                  VarParsing.varType.int,
                   "The job Id: 0")
 options.register ('outputDirectory',
-                  'file:/afs/cern.ch/user/g/gauzinge/BIBSim/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/',
+                  'file:/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/BeamHalo.0.root',
+		  #'file:/afs/cern.ch/user/g/gauzinge/BIBSim/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/',
                   # 'file:/afs/cern.ch/work/g/gauzinge/public/',
                                  VarParsing.multiplicity.singleton,
                                  VarParsing.varType.string,

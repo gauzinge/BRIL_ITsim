@@ -7,12 +7,17 @@ process = cms.Process("ITclusterAnalyzer")
 
 # set up the options
 options = VarParsing.VarParsing('analysis')
-#set up the defaults
+
+# input file(s)
 # options.inputFiles = 'file:/eos/user/g/gauzinge/PUdata/step3_pixel_PU_1.1.root'
-options.inputFiles = 'file:/afs/cern.ch/user/g/gauzinge/BIBSim/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/step3_pixel_PU_100.0.0TkOnly.root'
-# options.inputFiles = 'file:/afs/cern.ch/work/c/cbarrera/private/BRIL/outputDir/step3_pixel_PU_20.0.0.root'
+# options.inputFiles = 'file:/afs/cern.ch/user/g/gauzinge/BIBSim/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/step3_pixel_PU_100.0.0TkOnly.root'
+options.inputFiles = 'file:/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/bib_simulations/halo/BeamHaloReco.0.root'
+
+# output file
 options.outputFile='summary.root'
-options.maxEvents = -1 #all events
+
+# proccess this many events from input (-1 means all events)
+options.maxEvents = -1
 
 #get and parse command line arguments
 options.parseArguments()
@@ -20,6 +25,7 @@ options.parseArguments()
 # load standard Geometry
 # process.load('Configuration.Geometry.GeometryExtended2023D21Reco_cff')
 process.load('Configuration.Geometry.GeometryExtended2026D63Reco_cff')
+
 #custom BRIL configs like Geometry
 # process.load('BRIL_ITsim.DataProductionTkOnly.cmsExtendedGeometry2026D999XML_cff')
 # process.load('Configuration.StandardSequences.MagneticField_cff')
@@ -37,15 +43,18 @@ process.options = cms.untracked.PSet(wantSummary=cms.untracked.bool(False)
                                     # ,SkipEvent = cms.untracked.vstring('ProductNotFound')
                                     )
 
+# set number of events to process
 process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(options.maxEvents))
 
-# the input file
+# set input file(s)
 process.source = cms.Source("PoolSource",
                             fileNames=cms.untracked.vstring(options.inputFiles)
                             )
 
+# set EDAnalyzer type
 process.content = cms.EDAnalyzer("EventContentAnalyzer")
-# the config of my analyzer
+
+# set the python config of my analyzer
 process.BRIL_IT_Analysis = cms.EDAnalyzer('ITclusterAnalyzer',
                                          clusters=cms.InputTag("siPixelClustersPreSplitting"),
                                          simlinks=cms.InputTag("simSiPixelDigis", "Pixel", "FULLSIM"),
