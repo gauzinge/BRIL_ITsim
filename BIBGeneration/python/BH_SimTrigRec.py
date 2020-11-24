@@ -44,7 +44,7 @@ options.register ('outputDirectory',
                   "The output directory")
 
 options.parseArguments()
-options.outputFile=options.outputDirectory+'/BeamHaloReco.'+str(options.jobId)+'.root'
+options.outputFile=options.outputDirectory+'/BeamGasCarbonReco.'+str(options.jobId)+'.root'
 print("Output File: %s" % (options.outputFile))
 
 process = cms.Process('FULLSIM', eras.Phase2)
@@ -93,12 +93,19 @@ process.options = cms.untracked.PSet(
     SkipEvent = cms.untracked.vstring('ProductNotFound')
 )
 
-# Input source
+# define range of events to process in a single job (event numbering starts from 1 and range is limit inclusive)
+n_events = 5000
+range_min = int(options.jobId)*n_events + 1
+range_max = min((int(options.jobId)+1)*n_events, options.nEvents)
+print("Processing job {} with event numbers {}:{}".format(options.jobId, range_min, range_max))
+
+# input source
 process.source = cms.Source("PoolSource",
                             noEventSort = cms.untracked.bool(True),
                             duplicateCheckMode = cms.untracked.string('noDuplicateCheck'),
                             fileNames = cms.untracked.vstring(options.inputFile),
-                            skipEvents = cms.untracked.uint32(0)
+                            skipEvents = cms.untracked.uint32(0),
+			    eventsToProcess = cms.untracked.VEventRange("1:{}-1:{}".format(range_min, range_max))
 )
 
 # Output definition

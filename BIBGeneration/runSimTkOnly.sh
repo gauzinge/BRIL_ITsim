@@ -14,9 +14,9 @@ function list_include_item {
 }
 
 #assign the command line arguments
-PU=$1
+PU=$1 # not needed for BIB simulation
 NEVENTS=$2
-JOBID=$3
+JOBID=$3 # ProcID, number after queue command
 #STAGED=$4
 
 ################################################################################
@@ -26,19 +26,14 @@ NTHREADS=10
 
 #FILE=file:
 #PUPATH=/afs/cern.ch/work/g/gauzinge/public/minBiasFiles
-#PUPATH=/afs/cern.ch/work/g/gauzinge/public
 #PUPATH=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/pkicsiny_minbias
-INFILE=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/generator_output/halo/BeamHalo.0.root
+INFILE=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/generator_output/gas_carbon/BeamGasCarbon.0.root
 
 #OUTDIR=/eos/user/g/gauzinge/PUdata
-#OUTDIR=.
-#
 # COB high-pileuo samples
 #OUTDIR=/eos/user/c/cbarrera/BRIL_ITsim_PUsamples
-#
-#OUTDIR=/eos/user/p/pkicsiny/bib_simulations/gas_carbon
 #OUTDIR=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/pkicsiny_pileup
-OUTDIR=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/bib_simulations/halo
+OUTDIR=/eos/user/p/pkicsiny/bib_simulations/gas_carbon
 
 #additional variables for mixing module
 #BUNCHSPACING=25

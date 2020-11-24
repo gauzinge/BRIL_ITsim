@@ -1,6 +1,7 @@
 # imports
 import FWCore.ParameterSet.Config as cms
 import FWCore.ParameterSet.VarParsing as VarParsing
+import os
 
 # create a new CMS process
 process = cms.Process("ITclusterAnalyzer")
@@ -9,17 +10,18 @@ process = cms.Process("ITclusterAnalyzer")
 options = VarParsing.VarParsing('analysis')
 
 # input file(s)
+bib_type = "gas_carbon"
 # options.inputFiles = 'file:/eos/user/g/gauzinge/PUdata/step3_pixel_PU_1.1.root'
-<<<<<<< HEAD
 # options.inputFiles = 'file:/afs/cern.ch/user/g/gauzinge/BIBSim/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/step3_pixel_PU_100.0.0TkOnly.root'
-options.inputFiles = 'file:/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/bib_simulations/halo/BeamHaloReco.0.root'
+
+#input_path = "/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/test_output_simulation_step"
+input_path = '/eos/user/p/pkicsiny/bib_simulations/{}'.format(bib_type)
+input_list = [os.path.join("file:", input_path[1:], input_file) for input_file in os.listdir(input_path)]
+options.inputFiles = input_list #'file:/eos/user/p/pkicsiny/bib_simulations/halo/BeamHaloReco.0.root'
 
 # output file
-=======
-options.inputFiles = 'file:/afs/cern.ch/user/g/gauzinge/BIBSim/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/BeamHaloReco.0.root'
 # options.inputFiles = 'file:/afs/cern.ch/work/c/cbarrera/private/BRIL/outputDir/step3_pixel_PU_20.0.0.root'
->>>>>>> 95ac1e4b4842e9296c08643c8db496dd627c60b5
-options.outputFile='summary.root'
+options.outputFile='results/{}_summary.root'.format(bib_type)
 
 # proccess this many events from input (-1 means all events)
 options.maxEvents = -1
