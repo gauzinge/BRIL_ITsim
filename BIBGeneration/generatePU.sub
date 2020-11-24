@@ -1,0 +1,18 @@
+PU_parameter        = 10
+NEvents             = 200000
+
+executable          = runSimTkOnly.sh
+arguments           = $(PU_parameter) $(NEvents) $(ProcId)
+#arguments           = $(PU_parameter) $(NEvents) 4
+output              = batchlog/runSim.$(ClusterId).$(ProcId).out
+error               = batchlog/runSim.$(ClusterId).$(ProcId).err
+log                 = batchlog/runSim.$(ClusterId).log
+transfer_input_files    = sandbox.tar.bz2, python/BH_SimTrigRec.py
+#getenv              = True
+request_cpus        = 10
+requirements = (OpSysAndVer =?= "CentOS7")
+
+
+transfer_output_files = ""
++JobFlavour        = "nextweek"
+queue 40
