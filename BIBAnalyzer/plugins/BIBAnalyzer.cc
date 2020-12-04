@@ -112,10 +112,52 @@ private:
     const std::vector<PSimHit>* simhits_high = NULL;
 
     //max bins of Counting histogram
-    uint32_t m_maxBin;
+    
+    uint32_t m_nEBins;
+    uint32_t m_maxEBin;
+ 
+    //speed of light
+    const double c = 1; //3e8;
 
     //array of TH2F for psimhits per disk per ring
-    TH2F* m_histosPSimHits[8][5]; // 8 discs, 5 rings in each disc
+    TH2F* m_histosPSimHits_low[8][5]; // 8 discs, 5 rings in each disc
+    TH2F* m_histosPSimHits_high[8][5]; // 8 discs, 5 rings in each disc
+
+    //histogram for time of flight vs Z coordinate
+    TH2F* m_histoTofZ_low;
+    TH2F* m_histoTofZ_high;
+    
+     //charge of hits per ring per module
+    std::map<int, int> ptypes_dict;
+
+    //1D histo for E spectra total and per disc 
+    /*
+    * photon 22
+    * electron/positron +/-11
+    * muon +/-13
+    * neutron/antineutron +/-2112
+    * proton/antiproton +/-2212
+    * kaon +/-321
+    * pion +/-211
+    */
+    TH1F* m_spectrumAll[9];
+    TH1F* m_spectrumPhot[9];
+    TH1F* m_spectrumElPM[9];
+    TH1F* m_spectrumMuPM[9];
+    TH1F* m_spectrumNeut[9];
+    TH1F* m_spectrumProt[9];
+    TH1F* m_spectrumKaPM[9];
+    TH1F* m_spectrumPiPM[9];
+
+    //2D histos for global X-Y distributions total and per disc
+    TH2F* m_histoXYAll[9];
+    TH2F* m_histoXYPhot[9];
+    TH2F* m_histoXYElPM[9];
+    TH2F* m_histoXYMuPM[9];
+    TH2F* m_histoXYNeut[9];
+    TH2F* m_histoXYProt[9];
+    TH2F* m_histoXYKaPM[9];
+    TH2F* m_histoXYPiPM[9];
 
     //cuts for the coincidence
     double m_dx;
@@ -158,8 +200,9 @@ private:
 BIBAnalyzer::BIBAnalyzer(const edm::ParameterSet& iConfig)
         : m_tokenDigis(consumes<edm::DetSetVector<PixelDigi>>(iConfig.getParameter<edm::InputTag>("digis")))
         , m_tokenSimHits_low(consumes<std::vector<PSimHit>>(iConfig.getParameter<edm::InputTag>("simhits_low")))
-        , m_tokenSimHits_high(consumes<std::vector<PSimHit>>(iConfig.getParameter<edm::InputTag>("simhits_high"))) 
-        , m_maxBin(iConfig.getUntrackedParameter<uint32_t>("maxBin"))
+        , m_tokenSimHits_high(consumes<std::vector<PSimHit>>(iConfig.getParameter<edm::InputTag>("simhits_high")))
+	, m_nEBins(iConfig.getUntrackedParameter<uint32_t>("nEBins")) 
+        , m_maxEBin(iConfig.getUntrackedParameter<uint32_t>("maxEBin"))
         , m_dx(iConfig.getParameter<double>("dx_cut"))
         , m_dy(iConfig.getParameter<double>("dy_cut"))
         , m_dz(iConfig.getParameter<double>("dz_cut"))
@@ -186,28 +229,90 @@ void BIBAnalyzer::beginJob() {
     * TEPX histograms for hits
     */    
     fs->file().cd("/");
-    TFileDirectory td = fs->mkdir("TEPX");
-    td = fs->mkdir("TEPX/Hits");
+    TFileDirectory td = fs->mkdir("TEPX_tof");
+    td = fs->mkdir("TEPX_tof/Hits_tof");
 
+    fs->file().cd("/");
+    TFileDirectory pt = fs->mkdir("TEPX_ptype");
+    pt = fs->mkdir("TEPX_ptype/Hits_ptype");
+    
+   //loop over discs
     for (unsigned int i = 0; i < 8; i++) {
 
         // disc ID if [-4, 1] for -Z side and [1, 4] for +Z side
         int disk = (i < 4) ? i - 4 : i - 3;
         
-	//TH1F 2D array
+        //per disc E and XY distributions per particle type and for everything
+        m_spectrumAll[i] = pt.make<TH1F>(std::string("E spectrum of all particles on disk ") + disk, std::string("E spectrum of all particles on disk ") + disk, m_nEBins, 0, m_maxEBin);
+        m_spectrumPhot[i] = pt.make<TH1F>(std::string("E spectrum of photons on disk ") + disk, std::string("E spectrum of photons on disk ") + disk, m_nEBins, 0, m_maxEBin);
+        m_spectrumElPM[i] = pt.make<TH1F>(std::string("E spectrum of e+/- on disk ") + disk, std::string("E spectrum of e+/- on disk ") + disk, m_nEBins, 0, m_maxEBin);
+        m_spectrumMuPM[i] = pt.make<TH1F>(std::string("E spectrum of muons+/- on disk ") + disk, std::string("E spectrum of muons+/- on disk ") + disk, m_nEBins, 0, m_maxEBin);
+        m_spectrumNeut[i] = pt.make<TH1F>(std::string("E spectrum of neutrons on disk ") + disk, std::string("E spectrum of neutrons on disk ") + disk, m_nEBins, 0, m_maxEBin);
+	m_spectrumProt[i] = pt.make<TH1F>(std::string("E spectrum of protons on disk ") + disk, std::string("E spectrum of protons on disk ") + disk, m_nEBins, 0, m_maxEBin);
+        m_spectrumKaPM[i] = pt.make<TH1F>(std::string("E spectrum of kaons+/- on disk ") + disk, std::string("E spectrum of kaons+/- on disk ") + disk, m_nEBins, 0, m_maxEBin);
+        m_spectrumPiPM[i] = pt.make<TH1F>(std::string("E spectrum of pions+/- on disk ") + disk, std::string("E spectrum of pions+/- on disk ") + disk, m_nEBins, 0, m_maxEBin);
+
+        m_histoXYAll[i] = pt.make<TH2F>(std::string("X vs Y global coordinates for all particles on disk ") + disk,
+				        std::string("X vs Y global coordinates for all particles on disk ") + disk, 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+        m_histoXYPhot[i] = pt.make<TH2F>(std::string("X vs Y global coordinates for photons on disk ") + disk,
+					 std::string("X vs Y global coordinates for photons on disk ") + disk, 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+        m_histoXYElPM[i] = pt.make<TH2F>(std::string("X vs Y global coordinates for e+/- on disk ") + disk,
+					 std::string("X vs Y global coordinates for e+/- on disk ") + disk, 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+        m_histoXYMuPM[i] = pt.make<TH2F>(std::string("X vs Y global coordinates for muons+/- on disk ") + disk,
+					 std::string("X vs Y global coordinates for muons+/- on disk ") + disk, 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+        m_histoXYNeut[i] = pt.make<TH2F>(std::string("X vs Y global coordinates for neutrons on disk ") + disk,
+					 std::string("X vs Y global coordinates for neutrons on disk ") + disk, 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+	m_histoXYProt[i] = pt.make<TH2F>(std::string("X vs Y global coordinates for protons on disk ") + disk,
+                                         std::string("X vs Y global coordinates for protons on disk ") + disk, 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+        m_histoXYKaPM[i] = pt.make<TH2F>(std::string("X vs Y global coordinates for kaons+/- on disk ") + disk,
+                                         std::string("X vs Y global coordinates for kaons+/- on disk ") + disk, 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+        m_histoXYPiPM[i] = pt.make<TH2F>(std::string("X vs Y global coordinates for pions+/- on disk ") + disk,
+                                         std::string("X vs Y global coordinates for pions+/- on disk ") + disk, 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+
+	//TH2F 2D array
         for (unsigned int r = 0; r < 5; r++) {
 
-               std::stringstream histoname;
-               histoname << "Charge - time distribution for Disc " << disk << " and Ring " << r+1 << ";Time of flight;Total induced charge";
-               std::stringstream histotitle;
-               histotitle << "Charge - time distribution for Disc " << disk << " and Ring " << r+1;
-
                //name, name, nbinX, Xlow, Xhigh, nbinY, Ylow, Yhigh
-               m_histosPSimHits[i][r] = td.make<TH2F>(histotitle.str().c_str(), histoname.str().c_str(), 50, -25, 25, 100, 0, 1e-3);
+               m_histosPSimHits_low[i][r] = td.make<TH2F>(std::string("Charge - time of flight (low) distribution for Disc ") + disk + " and Ring " + r+1 + ";Time of flight;Total induced charge",
+							  std::string("Charge - time of flight (low) distribution for Disc ") + disk + " and Ring " + r+1,
+						 	  100, -50, 50, 100, 0, 1e-3);
+	       m_histosPSimHits_high[i][r] = td.make<TH2F>(std::string("Charge - time of flight (high) distribution for Disc ") + disk + " and Ring " + r+1 + ";Time of flight;Total induced charge", 
+                                                           std::string("Charge - time of flight (high) distribution for Disc ") + disk + " and Ring " + r+1, 
+                                                           550, -50, 500, 100, 0, 1e-3);
         }
     }
 
-    // ---------------------------------------------------
+    //total E and XY distributions per particle type and for everything
+    m_spectrumAll[8] = pt.make<TH1F>("E spectrum of all particles on all disks", "E spectrum of all particles on all disks", m_nEBins, 0, m_maxEBin);
+    m_spectrumPhot[8] = pt.make<TH1F>("E spectrum of photons on all disks", "E spectrum of photons on all disks", m_nEBins, 0, m_maxEBin);
+    m_spectrumElPM[8] = pt.make<TH1F>("E spectrum of e+/- on all disks", "E spectrum of e+/- on all disks", m_nEBins, 0, m_maxEBin);
+    m_spectrumMuPM[8] = pt.make<TH1F>("E spectrum of muons+/- on all disks", "E spectrum of muons+/- on all disks", m_nEBins, 0, m_maxEBin);
+    m_spectrumNeut[8] = pt.make<TH1F>("E spectrum of neutrons on all disks", "E spectrum of neutrons on all disks", m_nEBins, 0, m_maxEBin);
+    m_spectrumProt[8] = pt.make<TH1F>("E spectrum of protons on all disks", "E spectrum of protons on all disks", m_nEBins, 0, m_maxEBin);
+    m_spectrumKaPM[8] = pt.make<TH1F>("E spectrum of kaons+/- on all disks", "E spectrum of kaons+/- on all disks", m_nEBins, 0, m_maxEBin);
+    m_spectrumPiPM[8] = pt.make<TH1F>("E spectrum of pions+/- on all disks", "E spectrum of pions+/- on all disks", m_nEBins, 0, m_maxEBin);
+
+    m_histoXYAll[8] = pt.make<TH2F>("X vs Y global coordinates for all particles on all disks",
+				    "X vs Y global coordinates for all particles on all disks", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+    m_histoXYPhot[8] = pt.make<TH2F>("X vs Y global coordinates for photons on all disks",
+				     "X vs Y global coordinates for photons on all disks", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+    m_histoXYElPM[8] = pt.make<TH2F>("X vs Y global coordinates for e+/- on all disks",
+				     "X vs Y global coordinates for e+/- on all disks", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+    m_histoXYMuPM[8] = pt.make<TH2F>("X vs Y global coordinates for muons+/- on all disks",
+                                     "X vs Y global coordinates for muons+/- on all disks", 1000, -50.0, 50.0, 1000, -50.0, 50.0);    
+    m_histoXYNeut[8] = pt.make<TH2F>("X vs Y global coordinates for neutrons on all disks",
+				     "X vs Y global coordinates for neutrons on all disks", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+    m_histoXYProt[8] = pt.make<TH2F>("X vs Y global coordinates for protons on all disks",
+				     "X vs Y global coordinates for protons on all disks", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+    m_histoXYKaPM[8] = pt.make<TH2F>("X vs Y global coordinates for kaons+/- on all disks",
+				     "X vs Y global coordinates for kaons+/- on all disks", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+    m_histoXYPiPM[8] = pt.make<TH2F>("X vs Y global coordinates for pions+/- on all disks",
+				     "X vs Y global coordinates for pions+/- on all disks", 1000, -50.0, 50.0, 1000, -50.0, 50.0);
+
+    // global coord. vs tof
+    m_histoTofZ_low = td.make<TH2F>("ToF (low) vs Z", "Time of flight vs. global Z coordinate", 6000, -300, 300, 1000, -50, 50);
+    m_histoTofZ_high = td.make<TH2F>("ToF (high) vs Z", "Time of flight vs. global Z coordinate", 6000, -300, 300, 5000, 0, 500);
+  // ---------------------------------------------------
 
     if (m_storeClusterTree) {
 
@@ -258,11 +363,9 @@ void BIBAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     simhits_low = tsimhits_low.product();
     simhits_high = tsimhits_high.product();
 
-    //charge of hits per ring per module
-    unsigned int hitCounter[8][5][48];
-    memset(hitCounter, 0, sizeof(hitCounter));
-
-    //loop over the entries in the hit collection for TEPX
+    /*
+    * loop over PSimHits low
+    */
     for (typename std::vector<PSimHit>::const_iterator DSVit = simhits_low->begin(); DSVit != simhits_low->end(); DSVit++) {
 
         //get the detid
@@ -278,19 +381,19 @@ void BIBAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
         unsigned int side = (tTopo->pxfSide(detId));  // values are 1 and 2 for -+Z
         unsigned int disk = (tTopo->pxfDisk(detId)); // values are 1 to 12 for disks TFPX1 to TFPX 8  and TEPX1 to TEPX 4
         unsigned int ring = (tTopo->pxfBlade(detId)); // values are 1 to 5
-        unsigned int module = (tTopo->pxfModule(detId)); // values are 1 to 48	
+        //unsigned int module = (tTopo->pxfModule(detId)); // values are 1 to 48	
 	
-	//a TEPX module
+	//a TEPX module (9-12 starting from origin on both sides)
         if (disk > 8) {
 
             //the index in my histogram map
             int hist_id = -1;
             unsigned int ring_id = ring - 1;
-            unsigned int module_id = module - 1;
+            //unsigned int module_id = module - 1;
         
 	    //this is a TEPX hit on side 1 (-Z)
             if (side == 1) {
-                hist_id = disk - 9; // goes from 0 to 3
+                hist_id = 12 - disk; // goes from 0 to 3
             }
             
 	    //this is a TEPX hit on side 2 (+Z)
@@ -303,19 +406,215 @@ void BIBAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
             if (!geomDetUnit)
                 continue;
 
-	    // loop over the simhits in TEPX module
-           // for (edm::DetSet<PSimHit>::const_iterator simhit_low = DSVit->begin(); simhit_low != DSVit->end(); simhit_low++) {
+	    // get global coordinates of PSimHit
+	    Point3DBase<float, LocalTag> local_coords = DSVit->localPosition();
+	    
+	    // PixelGeomDetUnit is derived from GeomDet, transform local to global coords
+	    GlobalPoint global_coords = geomDetUnit->toGlobal(local_coords);
+      
+            //get particle type
+            int ptype = DSVit->particleType();
+	    if (ptypes_dict.find(ptype) == ptypes_dict.end()) {
+ 	    	ptypes_dict[ptype] = 1;
+		std::cout << "new key" << std::endl;
+	    }
+	    else{
+		ptypes_dict[ptype] += 1;
+		std::cout << "updating existing key" << std::endl;
+	    }
 
-            std::cout << "---- Hit info:" << std::endl;
-	    std::cout << "hit tof: " << DSVit->timeOfFlight() << std::endl;
-            std::cout << "hit eloss: " << DSVit->energyLoss() << std::endl;
+ 	    //debug info
+            //std::cout << "---- Hit info:" << std::endl;
+	    //std::cout << "hit tof: " << DSVit->timeOfFlight() << std::endl;
+	    //std::cout << "global position: " << global_coords.z() << std::endl;		
+	    //std::cout << "disc id: " <<	hist_id << std::endl;
+	    //std::cout << "particle type: " << DSVit->particleType() << std::endl;
 
-            m_histosPSimHits[hist_id][ring_id]->Fill(DSVit->timeOfFlight(), DSVit->energyLoss());
-        //    }
+	    // fill up particle type dependent histos
+	    switch (std::abs(ptype)){
+		case 22: // photon
+                    m_spectrumPhot[8]->Fill(c*DSVit->pabs()); 
+	            m_histoXYPhot[8]->Fill(global_coords.x(), global_coords.y()); 
+        	    m_spectrumPhot[hist_id]->Fill(c*DSVit->pabs());
+            	    m_histoXYPhot[hist_id]->Fill(global_coords.x(), global_coords.y());
+		    break;
+                 case 11: // electron/positron   
+                    m_spectrumElPM[8]->Fill(c*DSVit->pabs());
+                    m_histoXYElPM[8]->Fill(global_coords.x(), global_coords.y());
+                    m_spectrumElPM[hist_id]->Fill(c*DSVit->pabs());
+                    m_histoXYElPM[hist_id]->Fill(global_coords.x(), global_coords.y());
+                    break; 
+		 case 13: // muon+/-
+                    m_spectrumMuPM[8]->Fill(c*DSVit->pabs());
+                    m_histoXYMuPM[8]->Fill(global_coords.x(), global_coords.y());
+                    m_spectrumMuPM[hist_id]->Fill(c*DSVit->pabs());
+                    m_histoXYMuPM[hist_id]->Fill(global_coords.x(), global_coords.y());
+                    break; 
+		case 2112: // neutron/antineutron 
+                    m_spectrumNeut[8]->Fill(c*DSVit->pabs());
+                    m_histoXYNeut[8]->Fill(global_coords.x(), global_coords.y());
+                    m_spectrumNeut[hist_id]->Fill(c*DSVit->pabs());
+                    m_histoXYNeut[hist_id]->Fill(global_coords.x(), global_coords.y());
+                    break; 
+		case 2212: // proton/antiproton
+                    m_spectrumProt[8]->Fill(c*DSVit->pabs());
+                    m_histoXYProt[8]->Fill(global_coords.x(), global_coords.y());
+                    m_spectrumProt[hist_id]->Fill(c*DSVit->pabs());
+                    m_histoXYProt[hist_id]->Fill(global_coords.x(), global_coords.y());
+	    	    break;
+                case 321: // kaon+/-
+                    m_spectrumKaPM[8]->Fill(c*DSVit->pabs()); 
+                    m_histoXYKaPM[8]->Fill(global_coords.x(), global_coords.y());
+                    m_spectrumKaPM[hist_id]->Fill(c*DSVit->pabs());
+                    m_histoXYKaPM[hist_id]->Fill(global_coords.x(), global_coords.y());
+                    break;
+                case 211: // pion+/-
+                    m_spectrumPiPM[8]->Fill(c*DSVit->pabs()); 
+                    m_histoXYPiPM[8]->Fill(global_coords.x(), global_coords.y());
+                    m_spectrumPiPM[hist_id]->Fill(c*DSVit->pabs());
+                    m_histoXYPiPM[hist_id]->Fill(global_coords.x(), global_coords.y());
+                    break; 
+		}
+		
+	    // fill up all particle histos	
+	    m_spectrumAll[8]->Fill(c*DSVit->pabs());	    
+            m_histoXYAll[8]->Fill(global_coords.x(), global_coords.y());	
+	    m_spectrumAll[hist_id]->Fill(c*DSVit->pabs());
+            m_histoXYAll[hist_id]->Fill(global_coords.x(), global_coords.y());
 
+	    // fill up tof histos
+            m_histosPSimHits_low[hist_id][ring_id]->Fill(DSVit->timeOfFlight(), DSVit->energyLoss());
+	    m_histoTofZ_low->Fill(global_coords.z(), DSVit->timeOfFlight());
+        }
+    }
+
+    /*
+    * loop over PSimHits high
+    */
+    for (typename std::vector<PSimHit>::const_iterator DSVit = simhits_high->begin(); DSVit != simhits_high->end(); DSVit++) {
+
+        //get the detid
+        unsigned int rawid(DSVit->detUnitId());
+        DetId detId(rawid);
+
+        //module type => need phase 2 pixel forward module, in endcap
+        TrackerGeometry::ModuleType mType = tkGeom->getDetectorType(detId);
+        if (mType != TrackerGeometry::ModuleType::Ph2PXF && detId.subdetId() != PixelSubdetector::PixelEndcap) 
+            continue;
+
+        //find out which layer, side and ring
+        unsigned int side = (tTopo->pxfSide(detId));  // values are 1 and 2 for -+Z
+        unsigned int disk = (tTopo->pxfDisk(detId)); // values are 1 to 12 for disks TFPX1 to TFPX 8  and TEPX1 to TEPX 4
+        unsigned int ring = (tTopo->pxfBlade(detId)); // values are 1 to 5
+        //unsigned int module = (tTopo->pxfModule(detId)); // values are 1 to 48	
+	
+	//a TEPX module (9-12 starting from origin on both sides)
+        if (disk > 8) {
+
+            //the index in my histogram map
+            int hist_id = -1;
+            unsigned int ring_id = ring - 1;
+            //unsigned int module_id = module - 1;
+        
+	    //this is a TEPX hit on side 1 (-Z)
+            if (side == 1) {
+                hist_id = 12 - disk; // goes from 0 to 3
+            }
+            
+	    //this is a TEPX hit on side 2 (+Z)
+            else if (side == 2) {
+                hist_id = 4 + disk - 9; // goes from 4 to 7
+            }
+
+            //find the geometry of the module associated to the digi
+            const GeomDetUnit* geomDetUnit(tkGeom->idToDetUnit(detId));
+            if (!geomDetUnit)
+                continue;
+
+	    // get global coordinates of PSimHit
+	    Point3DBase<float, LocalTag> local_coords = DSVit->localPosition();
+	    
+	    // PixelGeomDetUnit is derived from GeomDet, transform local to global coords
+	    GlobalPoint global_coords = geomDetUnit->toGlobal(local_coords);
+      
+            //get particle type
+            int ptype = DSVit->particleType();
+	    if (ptypes_dict.find(ptype) == ptypes_dict.end()) {
+ 	    	ptypes_dict[ptype] = 1;
+		std::cout << "new key" << std::endl;
+	    }
+	    else{
+		ptypes_dict[ptype] += 1;
+		std::cout << "updating existing key" << std::endl;
+	    }
+
+ 	    //debug info
+            //std::cout << "---- Hit info:" << std::endl;
+	    //std::cout << "hit tof: " << DSVit->timeOfFlight() << std::endl;
+	    //std::cout << "global position: " << global_coords.z() << std::endl;		
+	    //std::cout << "disc id: " <<	hist_id << std::endl;
+	    //std::cout << "particle type: " << DSVit->particleType() << std::endl;
+            //std::cout << "momentum: " << DSVit->pabs() << std::endl;
+
+	    // fill up particle type dependent histos
+	    switch (std::abs(ptype)){
+		case 22: // photon
+                    m_spectrumPhot[8]->Fill(c*DSVit->pabs()); 
+	            m_histoXYPhot[8]->Fill(global_coords.x(), global_coords.y()); 
+        	    m_spectrumPhot[hist_id]->Fill(c*DSVit->pabs());
+            	    m_histoXYPhot[hist_id]->Fill(global_coords.x(), global_coords.y());
+		    break;
+                 case 11: // electron/positron   
+                    m_spectrumElPM[8]->Fill(c*DSVit->pabs());
+                    m_histoXYElPM[8]->Fill(global_coords.x(), global_coords.y());
+                    m_spectrumElPM[hist_id]->Fill(c*DSVit->pabs());
+                    m_histoXYElPM[hist_id]->Fill(global_coords.x(), global_coords.y());
+                    break; 
+		 case 13: // muon+/-
+                    m_spectrumMuPM[8]->Fill(c*DSVit->pabs());
+                    m_histoXYMuPM[8]->Fill(global_coords.x(), global_coords.y());
+                    m_spectrumMuPM[hist_id]->Fill(c*DSVit->pabs());
+                    m_histoXYMuPM[hist_id]->Fill(global_coords.x(), global_coords.y());
+                    break; 
+		case 2112: // neutron/antineutron 
+                    m_spectrumNeut[8]->Fill(c*DSVit->pabs());
+                    m_histoXYNeut[8]->Fill(global_coords.x(), global_coords.y());
+                    m_spectrumNeut[hist_id]->Fill(c*DSVit->pabs());
+                    m_histoXYNeut[hist_id]->Fill(global_coords.x(), global_coords.y());
+                    break; 
+		case 2212: // proton/antiproton
+                    m_spectrumProt[8]->Fill(c*DSVit->pabs());
+                    m_histoXYProt[8]->Fill(global_coords.x(), global_coords.y());
+                    m_spectrumProt[hist_id]->Fill(c*DSVit->pabs());
+                    m_histoXYProt[hist_id]->Fill(global_coords.x(), global_coords.y());
+	    	    break;
+                case 321: // kaon+/-
+                    m_spectrumKaPM[8]->Fill(c*DSVit->pabs()); 
+                    m_histoXYKaPM[8]->Fill(global_coords.x(), global_coords.y());
+                    m_spectrumKaPM[hist_id]->Fill(c*DSVit->pabs());
+                    m_histoXYKaPM[hist_id]->Fill(global_coords.x(), global_coords.y());
+                    break;
+                case 211: // pion+/-
+                    m_spectrumPiPM[8]->Fill(c*DSVit->pabs()); 
+                    m_histoXYPiPM[8]->Fill(global_coords.x(), global_coords.y());
+                    m_spectrumPiPM[hist_id]->Fill(c*DSVit->pabs());
+                    m_histoXYPiPM[hist_id]->Fill(global_coords.x(), global_coords.y());
+                    break; 
+		}
+		
+	    // fill up all particle histos	
+	    m_spectrumAll[8]->Fill(c*DSVit->pabs());	    
+            m_histoXYAll[8]->Fill(global_coords.x(), global_coords.y());	
+	    m_spectrumAll[hist_id]->Fill(c*DSVit->pabs());
+            m_histoXYAll[hist_id]->Fill(global_coords.x(), global_coords.y());
+
+            // fill up tof histos	
+            m_histosPSimHits_high[hist_id][ring_id]->Fill(DSVit->timeOfFlight(), DSVit->energyLoss());	
+	    m_histoTofZ_high->Fill(global_coords.z(), DSVit->timeOfFlight());
         }
 
     }
+
 
     m_nevents++;
 }
@@ -327,7 +626,10 @@ void BIBAnalyzer::endJob() {
         outFileCluster->Write("",TObject::kOverwrite);
         outFileCluster->Close();
     }
-
+    std::cout << "ptypes dict" << std::endl;
+    for (auto const& pair: ptypes_dict) {
+        std::cout << "{" << pair.first << ": " << pair.second << "}" << std::endl;
+    }
     std::cout << "IT cluster Analyzer processed " << m_nevents << " events!" << std::endl;
 }
 
