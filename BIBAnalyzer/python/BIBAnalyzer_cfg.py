@@ -4,15 +4,16 @@ import FWCore.ParameterSet.VarParsing as VarParsing
 import os
 
 # create a new CMS process
-process = cms.Process("BIBAnalyzer")
+plugin_file = "BIBAnalyzerTof"
+process = cms.Process(plugin_file)
 
 # set up the options
 options = VarParsing.VarParsing('analysis')
 
 # input file(s)
-bib_type = "halo"
+bib_type = "gas_hydrogen"
 
-#input_path = "/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/test_output_simulation_step"
+#input_path = "file:/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/pkicsiny_pileup/step3_pixel_PU_200.0.0TkOnly.root"
 input_path = '/eos/cms/store/group/dpg_bril/comm_bril/phase2-sim/bib_simulations/{}'.format(bib_type)
 input_list = [os.path.join("file:", input_path[1:], input_file) for input_file in os.listdir(input_path)]
 options.inputFiles = input_list[0]
@@ -32,7 +33,7 @@ process.load('Configuration.Geometry.GeometryExtended2026D63Reco_cff')
 # initialize MessageLogger and output report
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.MessageLogger.cerr.threshold = 'INFO'
-process.MessageLogger.categories.append('BIBAnalyzer')
+process.MessageLogger.categories.append(plugin_file)
 process.MessageLogger.cerr.INFO = cms.untracked.PSet(
     limit=cms.untracked.int32(-1)
 )
@@ -52,16 +53,14 @@ process.source = cms.Source("PoolSource",
 process.content = cms.EDAnalyzer("EventContentAnalyzer")
 
 # set the python config of my analyzer
-process.BRIL_IT_Analysis = cms.EDAnalyzer('BIBAnalyzer',
+process.BRIL_IT_Analysis = cms.EDAnalyzer(plugin_file,
+					 clusters=cms.InputTag("siPixelClustersPreSplitting"),
                                          digis=cms.InputTag("simSiPixelDigis", "Pixel", "FULLSIM"),
                                          simhits_low=cms.InputTag("g4SimHits", "TrackerHitsPixelEndcapLowTof", "FULLSIM"),
                                          simhits_high=cms.InputTag("g4SimHits", "TrackerHitsPixelEndcapHighTof", "FULLSIM"),
+					 simlinks=cms.InputTag("simSiPixelDigis", "Pixel", "FULLSIM"),
 					 nEBins=cms.untracked.uint32(10000),
                                          maxEBin=cms.untracked.uint32(100),
-                                         storeClusterTree=cms.untracked.bool(False),
-                                         dx_cut=cms.double(0.1),
-                                         dy_cut=cms.double(0.1),
-                                         dz_cut=cms.double(0.9)
                                          )
 
 # the TFIleService that produces the output root files

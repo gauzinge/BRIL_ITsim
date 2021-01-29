@@ -1,5 +1,5 @@
 PU_parameter        = 10
-NEvents             = 200000
+NEvents             = 195000
 
 executable          = runSimTkOnly.sh
 arguments           = $(PU_parameter) $(NEvents) $(ProcId)
@@ -15,4 +15,4 @@ requirements = (OpSysAndVer =?= "CentOS7")
 
 transfer_output_files = ""
 +JobFlavour        = "nextweek"
-queue 40
+queue 39

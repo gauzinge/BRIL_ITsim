@@ -5,17 +5,18 @@ from RecoLocalTracker.SiPhase2Clusterizer.phase2TrackerClusterizer_cfi import *
 from RecoLocalTracker.Configuration.RecoLocalTracker_cff import *
  
 def PixelClusterizerOnly(process):
-    print("!!! Special version of the local reco: running pixel clusterizer only !!!")
+    print("!!! Special version test of the local reco: running pixel clusterizer only !!!")
     if hasattr(process,'PixelClusterizer_step'):
         process=customise_PixelClusterizer(process)
 
     return process
 
 def customise_PixelClusterizer(process):
+    print("customize_PixelCluster")
     process.load('RecoLocalTracker.Configuration.RecoLocalTracker_cff')
-    # print(process.PixelClusterizer_step)
+    #print(process.PixelClusterizer_step)
     process.PixelClusterizer_step.remove(siPixelRecHitsPreSplitting)
-    # print(process.PixelClusterizer_step)
+    #print(process.PixelClusterizer_step)
 
     # keep new digis
     alist=['FEVTDEBUG','FEVTDEBUGHLT','FEVT']

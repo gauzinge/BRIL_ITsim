@@ -44,7 +44,7 @@ options.register ('outputDirectory',
                   "The output directory")
 
 options.parseArguments()
-options.outputFile=options.outputDirectory+'/BeamGasCarbonReco.'+str(options.jobId)+'.root'
+options.outputFile=options.outputDirectory+'/BeamHaloReco.'+str(options.jobId)+'.root'
 print("Output File: %s" % (options.outputFile))
 
 process = cms.Process('FULLSIM', eras.Phase2)
@@ -62,7 +62,7 @@ process.load('SimGeneral.MixingModule.mixNoPU_cfi')
 # process.load('HLTrigger.Configuration.HLT_GRun_cff')
 # process.load('Configuration.StandardSequences.RawToDigi_cff')
 # process.load('Configuration.StandardSequences.ReconstructionCosmics_cff')
-process.load('RecoLocalTracker.Configuration.RecoLocalTracker_cff')
+process.load('RecoLocalTracker.Configuration.RecoLocalTracker_cff') # pixelclusterizer process imported from here
 process.load('SimTracker.TrackTriggerAssociation.TrackTriggerAssociator_cff')
 process.load('L1Trigger.TrackTrigger.TrackTrigger_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
@@ -72,11 +72,17 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 # process.load('L1TriggerConfig.L1GtConfigProducers.L1GtTriggerMaskTechTrigConfig_cff')
 # process.load('HLTrigger/HLTfilters/hltLevel1GTSeed_cfi')
 
-#custom BRIL configs like Geometry
-process.load('BRIL_ITsim.DataProductionTkOnly.cmsExtendedGeometry2026D999XML_cff')
+# needed for pixel RecHits (TkPixelCPERecord), from: https://github.com/cms-sw/cmssw/blob/master/EventFilter/SiPixelRawToDigi/test/runRawToClus_cfg.py
+process.load('Configuration.StandardSequences.Reconstruction_cff')
+process.load('Configuration.Geometry.GeometryExtended2026D63_cff') # specific for generation (full cms)
+process.load('Configuration.Geometry.GeometryExtended2026D63Reco_cff') # specific for reconstruction (full cms)
+print('Running with full CMS geometry & TkOnly Digitisation, Clustering')
+
+#custom BRIL configs like geometry
+#process.load('BRIL_ITsim.DataProductionTkOnly.cmsExtendedGeometry2026D999XML_cff')
 # process.load('BRIL_ITsim.DataProductionTkOnly.TkOnlyDigiToRaw_cff')
 # process.load('BRIL_ITsim.DataProductionTkOnly.TkOnlyRawToDigi_cff')
-print 'Running with special BRIL Tk Only Geometry & TkOnly Digitisation, Clustering'
+#print('Running with special BRIL Tk Only Geometry & TkOnly Digitisation, Clustering')
 
 from L1Trigger.TrackTrigger.TTStubAlgorithmRegister_cfi import *
 from L1Trigger.TrackTrigger.TTStub_cfi import *
@@ -119,7 +125,7 @@ process.output = cms.OutputModule("PoolOutputModule",
      ),
      splitLevel = cms.untracked.int32(0),
      # outputCommands = cms.untracked.vstring( "keep *_*_*_*"),
-     outputCommands = process.RAWSIMEventContent.outputCommands,
+     outputCommands = process.RECOSIMEventContent.outputCommands,
      fileName = cms.untracked.string(options.outputFile),
 )
 
@@ -134,11 +140,11 @@ process.output = cms.OutputModule("PoolOutputModule",
      # ['keep *_g4SimHits_*_*'])
 # process.RECOSIMEventContent.outputCommands.extend(
      # ['keep *_TriggerResults_*_*'])
-process.RAWSIMEventContent.outputCommands.append('keep  *_*_*_*')
-process.RAWSIMEventContent.outputCommands.append('drop  *_*UnsuppressedDigis_*_*')
-process.RAWSIMEventContent.outputCommands.append('drop  *_simEcal*_*_*')
-process.RAWSIMEventContent.outputCommands.append('drop  *_simHcal*_*_*')
-process.RAWSIMEventContent.outputCommands.append('drop  *_mix_*_*')
+process.RECOSIMEventContent.outputCommands.append('keep  *_*_*_*')
+process.RECOSIMEventContent.outputCommands.append('drop  *_*UnsuppressedDigis_*_*')
+process.RECOSIMEventContent.outputCommands.append('drop  *_simEcal*_*_*')
+process.RECOSIMEventContent.outputCommands.append('drop  *_simHcal*_*_*')
+process.RECOSIMEventContent.outputCommands.append('drop  *_mix_*_*')
 # process.RECOSIMEventContent.outputCommands.append('keep  *_*_*_*')
 # process.RECOSIMEventContent.outputCommands.append('drop  *_mix_*_STUBS')
 # process.RECOSIMEventContent.outputCommands.append('drop  PCaloHits_*_*_*')
@@ -170,7 +176,7 @@ process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic', '')
 # Path and EndPath definitions
 process.simulation_step   = cms.Path(process.psim*process.mix)
 process.digitisationTkOnly_step = cms.Path(process.pdigi_valid)
-process.PixelClusterizer_step = cms.Path(process.pixeltrackerlocalreco)
+process.PixelClusterizer_step = cms.Path(process.pixeltrackerlocalreco) # pixel clusterization process
 process.L1TrackTrigger_step     = cms.Path(process.TrackTriggerClustersStubs)
 process.L1TTAssociator_step     = cms.Path(process.TrackTriggerAssociatorClustersStubs)
 # process.L1simulation_step = cms.Path(process.SimL1Emulator)

@@ -21,6 +21,8 @@
 <use   name="DataFormats/Common"/>
 <use   name="DataFormats/TrackerRecHit2D"/>
 <use   name="DataFormats/Phase2TrackerCluster"/>
+<use   name="SimTracker/SiPhase2Digitizer"/>
+
 <!--<use   name="DataFormats/ParticleFlowCandidate"/>-->
 <!--<use   name="DataFormats/ParticleFlowReco"/>-->
 <flags EDM_PLUGIN="1"/>

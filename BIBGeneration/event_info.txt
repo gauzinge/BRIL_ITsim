@@ -1,0 +1,12 @@
+#bib source 
+#number of files 
+#number of events per file nominal
+#number of events total nominal
+#number of events actual
+#number of events passed E cut
+#number of events read for bib simulation
+
+halo		307	3200	982400	608960	502557	500000
+carbon_gas	112	2000	224000	220738	217922	200000
+oxygen_gas	112	2000	224000	220739	218033	200000
+hydrogen_gas	101	2000	202000  199128	196734	195000

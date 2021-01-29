@@ -23,7 +23,8 @@ options = VarParsing ('analysis')
 
 # Here we have defined our own two VarParsing options 
 # add a list of strings for events to process
-nevents = 200000
+# this should be smaller than the total number of events in the file or otherwise get segfault when there are no more events in file
+nevents = 1000
 options.register ('nEvents',
                                  nevents,
                                  VarParsing.multiplicity.singleton,
@@ -40,7 +41,8 @@ options.register ('jobId',
                                  VarParsing.varType.int,
                   "The job Id: 0")
 options.register ('outputDirectory',
-                  'file:/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/generator_output',
+		  'file:/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/test_generator',
+                  # 'file:/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/generator_output',
                   # 'file:/afs/cern.ch/work/g/gauzinge/public/',
                                  VarParsing.multiplicity.singleton,
                                  VarParsing.varType.string,
@@ -49,22 +51,23 @@ options.register ('outputDirectory',
 options.parseArguments()
 
 #specify input
-#inputPath = "/afs/cern.ch/work/g/gauzinge/public/BeamHalo"
+inputPath = "/afs/cern.ch/work/g/gauzinge/public/BeamHalo"
 #inputPath = "/afs/cern.ch/work/g/gauzinge/public/BeamGas/cms_conditioned_carbon"
 #inputPath = "/afs/cern.ch/work/g/gauzinge/public/BeamGas/cms_conditioned_hydrogen"
-inputPath = "/afs/cern.ch/work/g/gauzinge/public/BeamGas/cms_conditioned_oxygen"
+#inputPath = "/afs/cern.ch/work/g/gauzinge/public/BeamGas/cms_conditioned_oxygen"
+#inputPath = "/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/GeneratorInterface/BeamHaloGenerator/input/"
 
-options.inputFiles= [inputPath + "/" + f for f in os.listdir(inputPath) if f[:3] == "run"]
-
+options.inputFiles= [inputPath + "/" + f for f in os.listdir(inputPath) if f[:3] == "run"][0]
+print(len(options.inputFiles))
 #count number of events in all input files
 print("Number of events in input files: {}".format(sum([len(set([int(line.split()[0]) for line in open(f) if line.split()[0].isdigit()])) for f in options.inputFiles])))
 print("Number of files: {}".format(len(options.inputFiles)))
 
 #specify output name
-#options.outputFile=options.outputDirectory+'/BeamHalo.'+str(options.jobId)+'.root'
+options.outputFile=options.outputDirectory+'/BeamHalo.'+str(options.jobId)+'.root'
 #options.outputFile=options.outputDirectory+'/BeamGasCarbon.'+str(options.jobId)+'.root'
 #options.outputFile=options.outputDirectory+'/BeamGasHydrogen.'+str(options.jobId)+'.root'
-options.outputFile=options.outputDirectory+'/BeamGasOxygen.'+str(options.jobId)+'.root'
+#options.outputFile=options.outputDirectory+'/BeamGasOxygen.'+str(options.jobId)+'.root'
 
 print("Output File: %s" % (options.outputFile))
 
@@ -87,8 +90,13 @@ process.load('Configuration.StandardSequences.SimIdeal_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
-process.load('BRIL_ITsim.DataProductionTkOnly.cmsExtendedGeometry2026D999XML_cff')
-print('Running with special BRIL Tk Only Geometry')
+#process.load('BRIL_ITsim.DataProductionTkOnly.cmsExtendedGeometry2026D999XML_cff')
+#print('Running with special BRIL Tk Only Geometry')
+
+process.load('Configuration.StandardSequences.Reconstruction_cff')
+process.load('Configuration.Geometry.GeometryExtended2026D63_cff') # specific for generation (full cms)
+process.load('Configuration.Geometry.GeometryExtended2026D63Reco_cff') # specific for reconstruction (full cms)
+print('Running with full CMS Geometry')
 
 #add message logger
 """

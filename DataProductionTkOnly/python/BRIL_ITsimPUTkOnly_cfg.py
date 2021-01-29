@@ -25,7 +25,7 @@ options.register ('nEvents',
                                  VarParsing.varType.int,
                   "The number of events to simulate: 10")
 options.register ('pileupFile',
-                                 'file:/afs/cern.ch/work/g/gauzinge/public/minBias300k.root',
+                                 'file:/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/pkicsiny_minbias/test.root',
                                  VarParsing.multiplicity.list,
                                  VarParsing.varType.string,
                                  "File with Minimum Bias events to use as PU overlay")
@@ -65,13 +65,13 @@ options.register ('jobId',
                                  VarParsing.varType.int,
                   "The job Id: 0")
 options.register ('outputDirectory',
-                  'file:/eos/user/g/gauzinge/PUdata',
+                  'file:/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/pkicsiny_pileup/test',
                                  VarParsing.multiplicity.singleton,
                                  VarParsing.varType.string,
                   "The output directory")
 
 options.parseArguments()
-options.outputFile=options.outputDirectory+'/step3_pixel_PU_'+str(options.pileupAverage)+'.'+str(options.jobId)+'TkOnly.root'
+options.outputFile=options.outputDirectory+'/step3_pixel_PU_'+str(options.pileupAverage)+'.'+str(options.jobId)+'TkOnly_with_psimhits.root'
 print("Output File: %s" % (options.outputFile))
 
 process = cms.Process('FULLSIM',eras.Phase2)
@@ -155,7 +155,7 @@ process.RAWSIMoutput.outputCommands.append('drop  *_simEcal*_*_*')
 process.RAWSIMoutput.outputCommands.append('drop  *_simHcal*_*_*')
 process.RAWSIMoutput.outputCommands.append('drop  *_TkPixelCPERecord*_*_*')
 process.RAWSIMoutput.outputCommands.append('keep  *_g4SimHits_Tracker*_*')
-process.RAWSIMoutput.outputCommands.append('drop  *_g4SimHits_*_*')
+process.RAWSIMoutput.outputCommands.append('keep  *_g4SimHits_*_*')
 # process.RAWSIMoutput.outputCommands.append('keep  *_mix_Tracker_*')
 
 # Other statements

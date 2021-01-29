@@ -14,69 +14,19 @@ function list_include_item {
 }
 
 #assign the command line arguments
-PU=$1 # not needed for BIB simulation
+PU=$1
 NEVENTS=$2
-JOBID=$3 # ProcID, number after queue command
+JOBID=$3
 #STAGED=$4
 
 ################################################################################
 ##CHANGE ME ACCORDING TO YOUR NEEDS
 ################################################################################
-NTHREADS=10
+NTHREADS=100
 
 #FILE=file:
-#PUPATH=/afs/cern.ch/work/g/gauzinge/public/minBiasFiles
-#PUPATH=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/pkicsiny_minbias
-INFILE=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/generator_output/gas_hydrogen/BeamGasHydrogen.0.root
-
-#OUTDIR=/eos/user/g/gauzinge/PUdata
-# COB high-pileuo samples
-#OUTDIR=/eos/user/c/cbarrera/BRIL_ITsim_PUsamples
-#OUTDIR=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/pkicsiny_pileup
-OUTDIR=/eos/user/p/pkicsiny/bib_simulations/gas_hydrogen
-
-#additional variables for mixing module
-#BUNCHSPACING=25
-#MINBUNCH=-12
-#MAXBUNCH=3
-################################################################################
-################################################################################
-################################################################################
-
-#make the list of minbias files and remove trailing comma
-#for filename in ${PUPATH}/*TkOnly.root; do
-#    FILENAMES+=${FILE}${filename},
-#done
-#PUFILE=${FILENAMES%,}
-#
-##some sanity checks on the command line arguments
-#if test -z "$PU" 
-#then
-#   echo "No Pileup number specified - please run as source runSim.sh PU"
-#   return
-#fi
-#
-#if `list_include_item "0 0.5 1 1.5 2 10 20 25 30 35 40 45 50 70 75 100 125 140 150 175 200" $PU` ; then
-#  #echo "PU value $PU available in list"
-#  echo ''
-#else 
-#  echo "ERROR, not a valid PU value! quitting!"
-#  return
-#fi
-#
-#if test -z "$NEVENTS" 
-#then
-#   echo "No # of Events specified. Please run as runSim.sh PU NEVENTS if you want to use a number different than default"
-#   echo "The default value is 10 events"
-#   NEVENTS=10
-#   #return
-#fi
-#
-#if test -z "$JOBID" 
-#then
-#   echo "No job ID passed - I will exit"
-#   return
-#fi
+INFILE=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/test_generator/BeamHalo_fullcms.root
+OUTDIR=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/test_simulator
 
 ################################################################################
 #PRINT THE ARGUMENTS SUMMARY
@@ -140,7 +90,7 @@ echo "Running the full simulation in one step from directory ${PWD}!"
 #local
 #command="cmsRun python/BH_SimTrigRec.py print \
 #cluster
-command="cmsRun BH_SimTrigRec.py print \
+command="cmsRun python/BH_SimTrigRec.py print \
         nEvents=${NEVENTS} \
 	inputFile=file:${INFILE} \
         nThreads=${NTHREADS} \

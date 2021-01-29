@@ -1,0 +1,6 @@
+build cmssw analyzer with external libraries e.g. hdf5:
+USER_CXXFLAGS="-Wall -g -L/usr/local/pub/lib64 -L/usr/local/pub/lib -L/lib64 -L/usr/lib64 -lhdf5 -lhdf5_cpp" scram b
+
+build c++ file:
+g++ -L/usr/local/pub/lib64 -L/usr/local/pub/lib -L/lib64 -L/usr/lib64 -lhdf5_cpp -lhdf5 toy_hd5_extendible.cpp 
+
