@@ -22,10 +22,10 @@ JOBID=$3
 ################################################################################
 ##CHANGE ME ACCORDING TO YOUR NEEDS
 ################################################################################
-NTHREADS=100
+NTHREADS=10
 
 #FILE=file:
-INFILE=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/test_generator/BeamHalo_fullcms.root
+INFILE=/eos/cms/store/group/dpg_bril/comm_bril/phase2-sim/bib_generation_fullgeo/halo/BeamHalo.0.root
 OUTDIR=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/test_simulator
 
 ################################################################################
@@ -90,7 +90,7 @@ echo "Running the full simulation in one step from directory ${PWD}!"
 #local
 #command="cmsRun python/BH_SimTrigRec.py print \
 #cluster
-command="cmsRun python/BH_SimTrigRec.py print \
+command="cmsRun python/BH_SimDigiReco_RecHits_fullGeo.py print \
         nEvents=${NEVENTS} \
 	inputFile=file:${INFILE} \
         nThreads=${NTHREADS} \

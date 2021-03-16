@@ -1,0 +1,165 @@
+###########################################
+#
+# BH_generator.py
+#
+# Test script for MIB generation (generate 1000 B1 events
+# using either FLUKA or MARS inputs)
+#
+# To use is just do
+#
+# cmsRun BH_generator.py
+#
+# SV: 20/12/2010
+#
+##########################################
+
+import FWCore.ParameterSet.Config as cms
+from FWCore.ParameterSet.VarParsing import VarParsing
+import os
+
+# In the line below 'analysis' is an instance of VarParsing object 
+options = VarParsing ('analysis')
+
+# Here we have defined our own two VarParsing options 
+# add a list of strings for events to process
+nevents = 500000
+options.register ('nEvents',
+                                 nevents,
+                                 VarParsing.multiplicity.singleton,
+                                 VarParsing.varType.int,
+                  "The number of events to generate: {}".format(nevents))
+options.register ('nThreads',
+                                 1,
+                                 VarParsing.multiplicity.singleton,
+                                 VarParsing.varType.int,
+                  "The number of threads to use: 1")
+options.register ('jobId',
+                                 0,
+                                 VarParsing.multiplicity.singleton,
+                                 VarParsing.varType.int,
+                  "The job Id: 0")
+options.register ('outputDirectory',
+                   'file:/eos/cms/store/group/dpg_bril/comm_bril/phase2-sim/bib_generation_fullgeo/halo',
+                   #'file:/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/test_generator',
+                                 VarParsing.multiplicity.singleton,
+                                 VarParsing.varType.string,
+                  "The output directory")
+
+options.parseArguments()
+
+#specify input
+inputPath = "/afs/cern.ch/work/g/gauzinge/public/BeamHalo"
+#inputPath = "/afs/cern.ch/work/g/gauzinge/public/BeamGas/cms_conditioned_carbon"
+#inputPath = "/afs/cern.ch/work/g/gauzinge/public/BeamGas/cms_conditioned_hydrogen"
+#inputPath = "/afs/cern.ch/work/g/gauzinge/public/BeamGas/cms_conditioned_oxygen"
+#inputPath = "/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/GeneratorInterface/BeamHaloGenerator/input/"
+
+options.inputFiles= [inputPath + "/" + f for f in os.listdir(inputPath) if f[:3] == "run"]#[0]
+print(len(options.inputFiles))
+#count number of events in all input files
+print("Number of events in input files: {}".format(sum([len(set([int(line.split()[0]) for line in open(f) if line.split()[0].isdigit()])) for f in options.inputFiles])))
+print("Number of files: {}".format(len(options.inputFiles)))
+
+#specify output name
+#options.outputFile=options.outputDirectory+'/BeamGasOxygen.'+str(options.jobId)+'.root'
+#options.outputFile=options.outputDirectory+'/BeamGasCarbon.'+str(options.jobId)+'.root'
+#options.outputFile=options.outputDirectory+'/BeamGasHydrogen.'+str(options.jobId)+'.root'
+options.outputFile=options.outputDirectory+'/BeamHalo.'+str(options.jobId)+'.root'
+print("Output File: %s" % (options.outputFile))
+
+#edit GA:
+# from Configuration.StandardSequences.Eras import eras
+from Configuration.Eras.Era_Phase2C11_cff import Phase2C11
+process = cms.Process('GEN', Phase2C11) # Generation only
+
+# import of standard configurations
+process.load('Configuration.StandardSequences.Services_cff')
+process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
+process.load('FWCore.MessageService.MessageLogger_cfi')
+process.load('Configuration.EventContent.EventContent_cff')
+process.load('SimGeneral.MixingModule.mixNoPU_cfi')
+# process.load('Configuration.Geometry.GeometryExtended2023D21Reco_cff')
+process.load('Configuration.Geometry.GeometryExtended2026D63_cff')
+process.load('Configuration.StandardSequences.MagneticField_cff')
+process.load('Configuration.StandardSequences.Generator_cff')
+# process.load('IOMC.EventVertexGenerators.VtxSmearedHLLHC14TeV_cfi')
+process.load('Configuration.StandardSequences.VtxSmearedNoSmear_cff')
+process.load('GeneratorInterface.Core.genFilterSummary_cff')
+process.load('Configuration.StandardSequences.SimIdeal_cff')
+process.load('Configuration.StandardSequences.EndOfProcess_cff')
+process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+
+# process.load('BRIL_ITsim.DataProductionTkOnly.cmsExtendedGeometry2026D999XML_cff')
+# print 'Running with special BRIL Tk Only Geometry'
+
+#add message logger
+"""
+process.load("FWCore.MessageLogger.MessageLogger_cfi")
+process.MessageLogger.cerr.threshold = 'DEBUG'
+process.MessageLogger.categories.append('BH_generator')
+process.MessageLogger.cerr.INFO = cms.untracked.PSet(
+    limit=cms.untracked.int32(-1)
+)
+"""
+
+process.configurationMetadata = cms.untracked.PSet(
+    version = cms.untracked.string('$Revision: 1.168.2.1 $'),
+    annotation = cms.untracked.string('Test script for MIB production'),
+    name = cms.untracked.string('PyReleaseValidation'),
+    SkipEvent = cms.untracked.vstring('ProductNotFound')
+)
+
+# Number of events
+process.maxEvents = cms.untracked.PSet(
+    input = cms.untracked.int32(options.nEvents)
+)
+
+# Input source
+process.source = cms.Source("EmptySource")
+
+# Output definition
+process.output = cms.OutputModule("PoolOutputModule",
+    splitLevel = cms.untracked.int32(0),
+    outputCommands = process.RAWSIMEventContent.outputCommands,
+    fileName = cms.untracked.string(options.outputFile),
+    dataset = cms.untracked.PSet(
+        dataTier = cms.untracked.string('GEN'),
+        filterName = cms.untracked.string('')
+    ),
+    SelectEvents = cms.untracked.PSet(
+        SelectEvents = cms.vstring('generation_step')
+    )
+)
+
+# Global tal clearly depends on the release you are working on
+# To get the correct GT, look at this page:
+#
+# https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideFrontierConditions?redirectedfrom=CMS.SWGuideFrontierConditions#Global_Tags_for_Monte_Carlo_Prod
+#
+
+from Configuration.AlCa.GlobalTag import GlobalTag
+process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic_T21', '')
+
+
+# Here we choose the input, look into MIB_generator_cfi for more infos about the inputs
+ 
+# process.load('BRIL_BIBGenerator.GeneratorInterface.BeamHaloGenerator.MIB_generator_cff')
+process.load('GeneratorInterface.BeamHaloGenerator.MIB_generator_cff')
+
+#process.Tracer          = cms.Service("Tracer")
+process.generator       = process.FLUKA_generator.clone()  # FLUKA
+# process.generator       = process.MARS_generator   # MARS
+# process.generator.InputFile = cms.string(options.inputFiles)
+process.generator.FlukaFiles = cms.vstring(options.inputFiles)
+
+# Path and EndPath definitions
+process.generation_step = cms.Path(process.pgen)
+process.endjob_step     = cms.Path(process.endOfProcess)
+process.out_step        = cms.EndPath(process.output)
+
+# Schedule definition
+process.schedule = cms.Schedule(process.generation_step,process.endjob_step,process.out_step)
+
+# special treatment in case of production filter sequence  
+for path in process.paths:
+    getattr(process,path)._seq = process.generator*getattr(process,path)._seq

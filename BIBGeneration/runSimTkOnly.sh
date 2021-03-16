@@ -27,13 +27,14 @@ NTHREADS=10
 #FILE=file:
 #PUPATH=/afs/cern.ch/work/g/gauzinge/public/minBiasFiles
 #PUPATH=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/pkicsiny_minbias
-INFILE=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/generator_output/gas_hydrogen/BeamGasHydrogen.0.root
+INFILE=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/BIBGeneration/generator_output/gas_oxygen/BeamGasOxygen.0.root
 
 #OUTDIR=/eos/user/g/gauzinge/PUdata
 # COB high-pileuo samples
 #OUTDIR=/eos/user/c/cbarrera/BRIL_ITsim_PUsamples
 #OUTDIR=/afs/cern.ch/work/p/pkicsiny/private/cmssw/CMSSW_11_2_0_pre6/src/BRIL_ITsim/DataProductionTkOnly/pkicsiny_pileup
-OUTDIR=/eos/user/p/pkicsiny/bib_simulations/gas_hydrogen
+#OUTDIR=/eos/user/p/pkicsiny/bib_simulations/gas_hydrogen
+OUTDIR=/eos/cms/store/group/dpg_bril/comm_bril/phase2-sim/bib_simulations_fullgeo/gas_oxygen
 
 #additional variables for mixing module
 #BUNCHSPACING=25
@@ -140,7 +141,7 @@ echo "Running the full simulation in one step from directory ${PWD}!"
 #local
 #command="cmsRun python/BH_SimTrigRec.py print \
 #cluster
-command="cmsRun BH_SimTrigRec.py print \
+command="cmsRun BH_SimDigiReco_RechHits_fullGeo.py print \
         nEvents=${NEVENTS} \
 	inputFile=file:${INFILE} \
         nThreads=${NTHREADS} \
