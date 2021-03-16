@@ -4,7 +4,7 @@ import FWCore.ParameterSet.VarParsing as VarParsing
 import os
 
 # create a new CMS process
-plugin_file = "BIBAnalyzerTofRecHitDigi"
+plugin_file = "BIBAnalyzerOccupancy"
 process = cms.Process(plugin_file)
 
 # set up the options
@@ -22,14 +22,14 @@ bib_type = "gas_oxygen"
 #BIB full stats
 input_path = '/eos/cms/store/group/dpg_bril/comm_bril/phase2-sim/bib_simulations_fullgeo/{}'.format(bib_type)
 input_list = [os.path.join("file:", input_path[1:], input_file) for input_file in os.listdir(input_path)  if ".root" in input_file]
-options.inputFiles = input_list[0]
+options.inputFiles = input_list
 
 print("Input file: ", input_list)
 # output file
-options.outputFile='results/low_stat_examples/{}_{}_summary.root'.format(bib_type, plugin_file.lower())
+options.outputFile='results/occupancy/{}_{}_summary.root'.format(bib_type, plugin_file.lower())
 
 # proccess this many events from input (-1 means all events)
-options.maxEvents = 1000#-1
+options.maxEvents = -1
 
 #get and parse command line arguments
 options.parseArguments()

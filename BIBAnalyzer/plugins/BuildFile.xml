@@ -22,6 +22,7 @@
 <use   name="DataFormats/TrackerRecHit2D"/>
 <use   name="DataFormats/Phase2TrackerCluster"/>
 <use   name="SimTracker/SiPhase2Digitizer"/>
+<use   name="SimTracker/TrackerHitAssociation"/>
 
 <!--<use   name="DataFormats/ParticleFlowCandidate"/>-->
 <!--<use   name="DataFormats/ParticleFlowReco"/>-->
