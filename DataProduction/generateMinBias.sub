@@ -1,16 +1,16 @@
-NEvents             = 15000
+
+NEvents             = 300000
 
 executable          = runMinBias.sh
 arguments           = $(NEvents) $(ProcId)
-output              = batchlog/runMinBias.$(ClusterId).out
-error               = batchlog/runMinBias.$(ClusterId).err
+output              = batchlog/runMinBias.$(ClusterId).$(ProcId).out
+error               = batchlog/runMinBias.$(ClusterId).$(ProcId).err
 log                 = batchlog/runMinBiasSim.$(ClusterId).log
-transfer_input_files    = sandbox.tar.bz2, BRIL_ITsimMinBias_cfg.py
+transfer_input_files    = sandbox.tar.bz2, python/BRIL_ITsimMinBias_RecHits_cfg.py
 #getenv              = True
 request_cpus        = 10
-requirements = (OpSysAndVer =?= "SLCern6")
-
+requirements = (OpSysAndVer =?= "CentOS7")
 
 transfer_output_files = ""
-+JobFlavour        = "testmatch"
-queue 20
++JobFlavour        = "nextweek"
+queue 60

@@ -120,22 +120,27 @@ old_release_top=$(awk -F= '/RELEASETOP/ {print $2}' $rel/.SCRAM/slc*/Environment
 # Creating new release
 # This isdone so e.g CMSSW_BASE and other variables are not hardcoded to the sandbox setting paths
 # which will not exist here
-  
 echo ">>> creating new release $rel"
 mkdir tmp
 cd tmp
 scramv1 project -f CMSSW $rel
 new_release_top=$(awk -F= '/RELEASETOP/ {print $2}' $rel/.SCRAM/slc*/Environment)
 cd $rel
+
 echo ">>> preparing sandbox release $rel"
-  
-#for i in bin cfipython config lib module python src; do
 for i in bin cfipython config lib python src; do
+
+    # delete folders in tmp release
     rm -rf "$i"
+
+    # move folder from extracted sandbox into tmp release
     mv "$basedir/$rel/$i" .
 done
      
 echo ">>> fixing python paths"
+echo $old_release_top
+echo $new_release_top
+echo $PWD
 for f in $(find -iname __init__.py); do
    sed -i -e "s@$old_release_top@$new_release_top@" "$f"
 done
@@ -152,7 +157,8 @@ echo "[$(date '+%F %T')] wrapper ready"
 if [ "$STAGEDVAL" -eq "0"  ]
 then
     echo "Running the full simulation in one step from directory ${PWD}!"
-    command="cmsRun BRIL_ITsimPU_RecHits_cfg.py print \
+    echo "$PWD"
+    command="cmsRun python/BRIL_ITsimPU_RecHits_cfg.py print \
             nEvents=${NEVENTS} \
             pileupFile=${PUFILE} \
             pileupAverage=${PU} \

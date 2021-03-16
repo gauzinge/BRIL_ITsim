@@ -8,7 +8,7 @@ JOBID=$2
 ##CHANGE ME ACCORDING TO YOUR NEEDS
 ################################################################################
 NTHREADS=10
-OUTDIR=/afs/cern.ch/work/g/gauzinge/public/minBiasFiles
+OUTDIR=/eos/cms/store/group/dpg_bril/comm_bril/phase2-sim/minbias_fullgeo
 ################################################################################
 ################################################################################
 ################################################################################
@@ -84,7 +84,7 @@ echo "[$(date '+%F %T')] wrapper ready"
 ################################################################################
 
 echo "Running the full minimum Bias generation from directory ${PWD}!"
-command="cmsRun BRIL_ITsimMinBias_cfg.py print \
+command="cmsRun BRIL_ITsimMinBias_RecHits_cfg.py print \
             nEvents=${NEVENTS} \
             nThreads=${NTHREADS} \
             jobId=${JOBID} \
